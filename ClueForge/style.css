@@ -269,6 +269,17 @@ body {
     box-shadow: 0 0 12px rgba(201, 168, 76, 0.3);
 }
 
+.save-btn {
+    border-color: #47a36e;
+    color: #5cbf80;
+    background: rgba(71, 163, 110, 0.12);
+}
+
+.save-btn:hover {
+    background: rgba(71, 163, 110, 0.25);
+    box-shadow: 0 0 12px rgba(71, 163, 110, 0.3);
+}
+
 /* ======================================================
    CANVAS CONTAINER
    ====================================================== */
