@@ -1,0 +1,789 @@
+/* ============================================================
+   ClueForge — TRPG 线索制作工坊  |  style.css
+   ============================================================ */
+
+/* ---- Google Fonts ---- */
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Caveat:wght@400;600&family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;700&family=ZCOOL+XiaoWei&display=swap');
+
+/* ---- CSS 变量 ---- */
+:root {
+    --bg-deep: #0d0d1a;
+    --bg-panel: rgba(18, 18, 35, 0.92);
+    --bg-glass: rgba(255, 255, 255, 0.06);
+    --bg-glass-hv: rgba(255, 255, 255, 0.11);
+    --border: rgba(255, 255, 255, 0.10);
+    --accent: #b83232;
+    --accent-glow: rgba(184, 50, 50, 0.4);
+    --gold: #c9a84c;
+    --text-primary: #e8e0d0;
+    --text-muted: #8a8090;
+    --text-dim: #5a5060;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --shadow-toolbar: 0 4px 24px rgba(0, 0, 0, 0.6);
+    --shadow-btn: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --transition: 0.18s ease;
+}
+
+/* ---- Reset ---- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+}
+
+/* ======================================================
+   TOOLBAR
+   ====================================================== */
+.toolbar {
+    height: 58px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    background: var(--bg-panel);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-toolbar);
+    z-index: 100;
+    flex-shrink: 0;
+}
+
+.toolbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 2px;
+}
+
+.brand-icon {
+    font-size: 22px;
+    filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+
+.brand-name {
+    font-family: 'Special Elite', serif;
+    font-size: 17px;
+    color: var(--gold);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 32px;
+    background: var(--border);
+    margin: 0 4px;
+    flex-shrink: 0;
+}
+
+.toolbar-spacer {
+    flex: 1;
+}
+
+/* ---- Tool Groups ---- */
+.tool-group {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.group-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 2px;
+    white-space: nowrap;
+}
+
+/* ---- Tool Buttons ---- */
+.tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 5px 8px;
+    min-width: 46px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition);
+    font-size: 10px;
+    font-family: inherit;
+}
+
+.tool-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+.tool-btn:hover {
+    background: var(--bg-glass-hv);
+    color: var(--text-primary);
+    border-color: var(--border);
+}
+
+.tool-btn.active {
+    background: rgba(184, 50, 50, 0.18);
+    color: #e05050;
+    border-color: rgba(184, 50, 50, 0.45);
+    box-shadow: 0 0 10px rgba(184, 50, 50, 0.2);
+}
+
+.tool-btn.small {
+    min-width: 36px;
+    padding: 5px 6px;
+}
+
+/* ---- Pin Buttons ---- */
+.pin-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    cursor: pointer;
+    transition: all var(--transition);
+    line-height: 1;
+}
+
+.pin-btn:hover {
+    background: var(--bg-glass-hv);
+    border-color: var(--border);
+    transform: scale(1.15);
+}
+
+.upload-pin-btn {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.upload-pin-btn:hover {
+    color: var(--text-primary);
+}
+
+/* ---- Style Controls ---- */
+.style-ctrl {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    color: var(--text-dim);
+    cursor: pointer;
+}
+
+.style-ctrl input[type="color"] {
+    width: 28px;
+    height: 22px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    padding: 1px;
+}
+
+.slim-range {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 60px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+    cursor: pointer;
+}
+
+.slim-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 4px var(--accent-glow);
+}
+
+/* ---- Filter + Export ---- */
+.filter-select {
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 5px 8px;
+    cursor: pointer;
+    outline: none;
+}
+
+.filter-select option {
+    background: #1a1a30;
+}
+
+.export-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gold);
+    background: rgba(201, 168, 76, 0.12);
+    color: var(--gold);
+    font-family: 'Special Elite', serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+
+.export-btn:hover {
+    background: rgba(201, 168, 76, 0.25);
+    box-shadow: 0 0 12px rgba(201, 168, 76, 0.3);
+}
+
+/* ======================================================
+   CANVAS CONTAINER
+   ====================================================== */
+.canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(ellipse at center, #1c1c30 0%, #0d0d1a 100%);
+}
+
+/* 装饰纹理叠层 */
+.canvas-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255, 255, 255, 0.012) 40px, rgba(255, 255, 255, 0.012) 41px),
+        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255, 255, 255, 0.012) 40px, rgba(255, 255, 255, 0.012) 41px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.canvas-container canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+/* ---- Drop Hint ---- */
+.drop-hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.drop-hint.hidden {
+    display: none;
+}
+
+.drop-hint-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 48px 60px;
+    background: rgba(18, 18, 35, 0.7);
+    border: 2px dashed rgba(201, 168, 76, 0.35);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(8px);
+    pointer-events: all;
+    text-align: center;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+.drop-icon {
+    font-size: 52px;
+    margin-bottom: 4px;
+}
+
+.drop-hint-inner h2 {
+    font-family: 'Special Elite', serif;
+    font-size: 22px;
+    color: var(--gold);
+    font-weight: 400;
+}
+
+.drop-hint-inner p {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.upload-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(201, 168, 76, 0.5);
+    color: var(--gold);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all var(--transition);
+    margin-top: 4px;
+}
+
+.upload-label:hover {
+    background: rgba(201, 168, 76, 0.15);
+}
+
+/* ---- Drag Over state ---- */
+.canvas-container.drag-over::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 3px solid var(--gold);
+    border-radius: 4px;
+    animation: pulse-border 0.6s ease infinite alternate;
+    pointer-events: none;
+    z-index: 20;
+}
+
+@keyframes pulse-border {
+    from {
+        opacity: 0.5;
+    }
+
+    to {
+        opacity: 1;
+        box-shadow: inset 0 0 30px rgba(201, 168, 76, 0.1);
+    }
+}
+
+/* ---- Crop Overlay ---- */
+.crop-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    cursor: crosshair;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.crop-selection {
+    position: absolute;
+    border: 2px dashed var(--gold);
+    background: rgba(201, 168, 76, 0.07);
+    pointer-events: none;
+}
+
+/* ======================================================
+   STATUSBAR
+   ====================================================== */
+.statusbar {
+    height: 26px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 16px;
+    background: rgba(10, 10, 20, 0.9);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'Special Elite', serif;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+/* ======================================================
+   LEGEND PANEL  (图例编辑浮窗)
+   ====================================================== */
+#legendPanel {
+    position: absolute;
+    bottom: 36px;
+    right: 24px;
+    width: 220px;
+    background: rgba(12, 10, 22, 0.88);
+    border: 1px solid rgba(201, 168, 76, 0.35);
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 50;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    resize: both;
+    min-width: 160px;
+}
+
+#legendPanel.visible {
+    display: flex;
+}
+
+.legend-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px 6px;
+    background: rgba(201, 168, 76, 0.08);
+    border-bottom: 1px solid rgba(201, 168, 76, 0.2);
+    cursor: grab;
+    font-family: 'Special Elite', serif;
+    font-size: 12px;
+    color: var(--gold);
+    letter-spacing: 0.06em;
+}
+
+.legend-header:active {
+    cursor: grabbing;
+}
+
+.legend-sync-btn {
+    background: none;
+    border: 1px solid rgba(201, 168, 76, 0.4);
+    border-radius: 4px;
+    color: var(--gold);
+    font-size: 10px;
+    padding: 1px 6px;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: inherit;
+}
+
+.legend-sync-btn:hover {
+    background: rgba(201, 168, 76, 0.2);
+}
+
+#legendTextarea {
+    width: 100%;
+    min-height: 80px;
+    max-height: 200px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-family: 'Special Elite', serif;
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 10px 12px;
+    resize: none;
+    overflow-y: auto;
+}
+
+#legendTextarea::placeholder {
+    color: var(--text-dim);
+    font-style: italic;
+}
+
+.legend-footer {
+    display: flex;
+    gap: 6px;
+    padding: 6px 10px 8px;
+    border-top: 1px solid var(--border);
+}
+
+.legend-btn {
+    flex: 1;
+    padding: 4px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-glass);
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: inherit;
+}
+
+.legend-btn:hover {
+    background: var(--bg-glass-hv);
+    color: var(--text-primary);
+}
+
+.legend-btn.primary {
+    border-color: rgba(184, 50, 50, 0.5);
+    color: #e05050;
+    background: rgba(184, 50, 50, 0.1);
+}
+
+.legend-btn.primary:hover {
+    background: rgba(184, 50, 50, 0.2);
+}
+
+/* ======================================================
+   SCROLLBAR
+   ====================================================== */
+::-webkit-scrollbar {
+    width: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+
+/* ======================================================
+   APP TABS  (地图批注 / 线索墙)
+   ====================================================== */
+.app-tabs {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 0 14px;
+    background: rgba(8, 8, 18, 0.98);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 200;
+}
+
+.tabs-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 14px;
+}
+
+.tab-btn {
+    padding: 0 18px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 7px 7px 0 0;
+    color: var(--text-dim);
+    font-family: 'Special Elite', serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.09);
+    color: var(--text-muted);
+}
+
+.tab-btn.active {
+    background: var(--bg-deep);
+    border-color: var(--border);
+    color: var(--gold);
+    box-shadow: inset 0 2px 0 var(--accent);
+}
+
+/* ── Tab Panels ── */
+.tab-panel {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.tab-panel.active {
+    display: flex;
+}
+
+/* ======================================================
+   CLUE BOARD  (线索墙)
+   ====================================================== */
+
+/* 线索墙工具栏 */
+.cb-toolbar {
+    height: 54px;
+}
+
+/* 软木板画布容器 */
+.cb-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    /* 软木板纹理 */
+    background-color: #b5874e;
+    background-image:
+        repeating-linear-gradient(0deg, rgba(80, 40, 5, 0.07) 0, rgba(80, 40, 5, 0.07) 1px, transparent 0, transparent 7px),
+        repeating-linear-gradient(60deg, rgba(60, 30, 5, 0.05) 0, rgba(60, 30, 5, 0.05) 1px, transparent 0, transparent 9px),
+        repeating-linear-gradient(120deg, rgba(100, 55, 5, 0.04) 0, rgba(100, 55, 5, 0.04) 1px, transparent 0, transparent 11px);
+}
+
+.cb-container canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+/* 空提示 */
+.cb-hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.cb-hint-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 56px;
+    background: rgba(60, 35, 10, 0.55);
+    border: 2px dashed rgba(201, 168, 76, 0.4);
+    border-radius: 14px;
+    backdrop-filter: blur(6px);
+    color: #e8d5a8;
+    text-align: center;
+    animation: float 3.5s ease-in-out infinite;
+}
+
+.cb-hint-inner h2 {
+    font-family: 'Special Elite', serif;
+    font-size: 22px;
+    color: var(--gold);
+}
+
+.cb-hint-inner p {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+/* 图钉颜色选择器 */
+.pin-colors {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.pin-color-btn,
+.note-color-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.pin-color-btn:hover,
+.note-color-btn:hover {
+    transform: scale(1.2);
+}
+
+.pin-color-btn.active,
+.note-color-btn.active {
+    border-color: #fff;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+}
+
+.cb-color-input {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    padding: 1px;
+}
+
+/* ── 主题按钮 ── */
+.theme-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.theme-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: scale(1.1);
+}
+
+.theme-btn.active {
+    border-color: var(--gold);
+    background: rgba(201, 168, 76, 0.15);
+    box-shadow: 0 0 8px rgba(201, 168, 76, 0.35);
+}
+
+/* ── 主题背景 ── */
+.cb-theme-cork {
+    background-color: #b5874e;
+    background-image:
+        repeating-linear-gradient(0deg, rgba(80, 40, 5, 0.07) 0, rgba(80, 40, 5, 0.07) 1px, transparent 0, transparent 7px),
+        repeating-linear-gradient(60deg, rgba(60, 30, 5, 0.05) 0, rgba(60, 30, 5, 0.05) 1px, transparent 0, transparent 9px),
+        repeating-linear-gradient(120deg, rgba(100, 55, 5, 0.04) 0, rgba(100, 55, 5, 0.04) 1px, transparent 0, transparent 11px);
+}
+
+.cb-theme-noir {
+    background-color: #1a1610;
+    background-image:
+        radial-gradient(ellipse at 30% 40%, rgba(50, 40, 20, 0.6) 0%, transparent 70%),
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1) 0, rgba(0, 0, 0, 0.1) 1px, transparent 0, transparent 4px),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.08) 0, rgba(0, 0, 0, 0.08) 1px, transparent 0, transparent 4px);
+}
+
+.cb-theme-chinese {
+    background-color: #2c1e12;
+    background-image:
+        radial-gradient(circle at 50% 50%, rgba(80, 30, 10, 0.3) 0%, transparent 60%),
+        repeating-linear-gradient(0deg, rgba(100, 40, 10, 0.06) 0, rgba(100, 40, 10, 0.06) 1px, transparent 0, transparent 20px),
+        repeating-linear-gradient(90deg, rgba(100, 40, 10, 0.06) 0, rgba(100, 40, 10, 0.06) 1px, transparent 0, transparent 20px);
+}
+
+.cb-theme-federal {
+    background-color: #e8e4de;
+    background-image:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 1px, transparent 0, transparent 24px),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 1px, transparent 0, transparent 24px);
+}

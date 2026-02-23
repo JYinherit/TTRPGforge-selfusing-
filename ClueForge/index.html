@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClueForge · TRPG 线索制作工坊</title>
+    <meta name="description" content="面向跑团KP/主持人的沉浸式图片编辑与批注工具" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js"></script>
+</head>
+
+<body>
+
+    <!-- ===== 标签栏 ===== -->
+    <nav class="app-tabs" id="appTabs">
+        <div class="tabs-brand">
+            <span class="brand-icon">⚔</span>
+            <span class="brand-name">ClueForge</span>
+        </div>
+        <button class="tab-btn active" id="tabMap" onclick="switchTab('map')">
+            🗺 地图批注
+        </button>
+        <button class="tab-btn" id="tabClue" onclick="switchTab('clue')">
+            🧵 线索墙
+        </button>
+    </nav>
+
+    <!-- ===== 地图批注面板 ===== -->
+    <div id="mapPanel" class="tab-panel active">
+
+        <header class="toolbar" id="toolbar">
+            <div class="toolbar-divider"></div>
+            <div class="tool-group" id="modeGroup">
+                <button class="tool-btn active" id="btn-select" data-mode="select" title="选择/移动 (V)">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4 0L4 20L8 16L11 23L13 22L10 15L15 15Z" />
+                    </svg>
+                    <span>选择</span>
+                </button>
+                <button class="tool-btn" id="btn-rect" data-mode="rect" title="手绘矩形 (R)">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="3" y="5" width="18" height="14" rx="1" fill="none" stroke="currentColor"
+                            stroke-width="2" />
+                    </svg>
+                    <span>矩形</span>
+                </button>
+                <button class="tool-btn" id="btn-ellipse" data-mode="ellipse" title="手绘椭圆 (E)">
+                    <svg viewBox="0 0 24 24">
+                        <ellipse cx="12" cy="12" rx="9" ry="6" fill="none" stroke="currentColor" stroke-width="2" />
+                    </svg>
+                    <span>椭圆</span>
+                </button>
+                <button class="tool-btn" id="btn-crop" data-mode="crop" title="裁剪底图 (C)">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M6 2v14h14v2H6a2 2 0 01-2-2V2h2zm14 2v2H8V2h2v2h10zM8 22v-2h12v-2h2v2a2 2 0 01-2 2H8z"
+                            fill="currentColor" />
+                    </svg>
+                    <span>裁剪</span>
+                </button>
+                <button class="tool-btn" id="btn-arrow" data-mode="arrow" title="手绘箭头 (A)">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M5 12h12M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span>箭头</span>
+                </button>
+            </div>
+            <div class="toolbar-divider"></div>
+            <div class="tool-group">
+                <span class="group-label">标记</span>
+                <button class="pin-btn" data-marker="x" title="手绘红叉">
+                    <svg viewBox="0 0 24 24" width="22" height="22">
+                        <line x1="5" y1="5" x2="19" y2="19" stroke="#dc1c1c" stroke-width="2.8"
+                            stroke-linecap="round" />
+                        <line x1="19" y1="5" x2="5" y2="19" stroke="#dc1c1c" stroke-width="2.8"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+                <button class="pin-btn" data-marker="dot" title="手绘红点">
+                    <svg viewBox="0 0 24 24" width="22" height="22">
+                        <circle cx="12" cy="12" r="7" fill="#dc1c1c" />
+                    </svg>
+                </button>
+                <button class="pin-btn" data-marker="question" title="手绘问号">
+                    <svg viewBox="0 0 24 24" width="22" height="22">
+                        <circle cx="12" cy="12" r="9" fill="none" stroke="#e09010" stroke-width="2.2"
+                            stroke-linecap="round" />
+                        <text x="12" y="17" text-anchor="middle" font-size="12" fill="#e09010" font-weight="bold"
+                            font-family="serif">?</text>
+                    </svg>
+                </button>
+                <button class="pin-btn" data-marker="blood" title="手绘血迹">
+                    <svg viewBox="0 0 24 24" width="22" height="22">
+                        <circle cx="12" cy="10" r="6" fill="#8b0000" />
+                        <ellipse cx="9" cy="18" rx="3" ry="2" fill="#8b0000" />
+                        <ellipse cx="16" cy="17" rx="2" ry="1.5" fill="#8b0000" />
+                    </svg>
+                </button>
+                <button class="pin-btn" data-marker="eye" title="手绘观察标记">
+                    <svg viewBox="0 0 24 24" width="22" height="22">
+                        <ellipse cx="12" cy="12" rx="9" ry="5" fill="none" stroke="#1a8040" stroke-width="2"
+                            stroke-linecap="round" />
+                        <circle cx="12" cy="12" r="3" fill="#1a8040" />
+                    </svg>
+                </button>
+                <label class="pin-btn upload-pin-btn" title="上传自定义图章">
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                        <path d="M12 2L8 8h3v8h2V8h3L12 2zm-7 14v2h14v-2H5z" fill="currentColor" />
+                    </svg>
+                    <input type="file" id="customStampInput" accept="image/*" style="display:none" />
+                </label>
+            </div>
+            <div class="toolbar-divider"></div>
+            <div class="tool-group">
+                <span class="group-label">样式</span>
+                <label class="style-ctrl" title="描边颜色"><span>色</span><input type="color" id="strokeColor"
+                        value="#dc143c" /></label>
+                <label class="style-ctrl" title="线宽"><span>线</span><input type="range" id="strokeWidth" min="1" max="8"
+                        value="2" class="slim-range" /></label>
+                <label class="style-ctrl" title="粗糙度"><span>糙</span><input type="range" id="roughness" min="0" max="4"
+                        step="0.5" value="1.5" class="slim-range" /></label>
+            </div>
+            <div class="toolbar-divider"></div>
+            <div class="tool-group">
+                <button class="tool-btn small" id="btn-undo" title="撤销 (Ctrl+Z)">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62C8.67 11.15 10.46 10 12.5 10c3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"
+                            fill="currentColor" />
+                    </svg>
+                    <span>撤销</span>
+                </button>
+                <button class="tool-btn small" id="btn-redo" title="重做 (Ctrl+Y)">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M18.4 10.6C16.55 9 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 15.7c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 15h9V6l-3.6 4.6z"
+                            fill="currentColor" />
+                    </svg>
+                    <span>重做</span>
+                </button>
+            </div>
+            <div class="toolbar-spacer"></div>
+            <div class="tool-group">
+                <span class="group-label">导出</span>
+                <select id="filterSelect" class="filter-select">
+                    <option value="none">无滤镜</option>
+                    <option value="parchment">羊皮纸泛黄</option>
+                    <option value="newspaper">老报纸噪点</option>
+                </select>
+                <button class="export-btn" id="btn-export-png">
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor" />
+                    </svg>
+                    导出 PNG
+                </button>
+            </div>
+        </header>
+
+        <main class="canvas-container" id="canvasContainer">
+            <div class="drop-hint" id="dropHint">
+                <div class="drop-hint-inner">
+                    <div class="drop-icon">🗺</div>
+                    <h2>拖入地图 / 线索图片</h2>
+                    <p>支持 JPG、PNG、WebP 格式</p>
+                    <p>或</p>
+                    <label class="upload-label">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <path d="M12 2L8 8h3v8h2V8h3L12 2zm-7 14v2h14v-2H5z" fill="currentColor" />
+                        </svg>
+                        点击选择文件
+                        <input type="file" id="fileInput" accept="image/*" style="display:none" />
+                    </label>
+                </div>
+            </div>
+            <canvas id="mainCanvas"></canvas>
+            <div class="crop-overlay" id="cropOverlay" style="display:none">
+                <div class="crop-selection" id="cropSelection"></div>
+            </div>
+        </main>
+
+        <footer class="statusbar" id="statusbar">
+            <span id="statusMode">模式：选择</span>
+            <span id="statusZoom">缩放：100%</span>
+            <span id="statusObjects">对象数：0</span>
+            <span id="statusHint">提示：拖入图片以开始创作</span>
+        </footer>
+
+    </div><!-- #mapPanel -->
+
+    <!-- ===== 线索墙面板 ===== -->
+    <div id="cluePanel" class="tab-panel">
+
+        <!-- 线索墙工具栏 -->
+        <header class="toolbar cb-toolbar">
+            <div class="toolbar-divider"></div>
+            <!-- 模式 -->
+            <div class="tool-group">
+                <button class="tool-btn active" id="cbbtn-select" title="选择/移动 (V)">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4 0L4 20L8 16L11 23L13 22L10 15L15 15Z" />
+                    </svg>
+                    <span>选择</span>
+                </button>
+                <button class="tool-btn" id="cbbtn-photo" title="添加照片/证据 (P)">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
+                            fill="currentColor" />
+                    </svg>
+                    <span>照片</span>
+                    <input type="file" id="cbPhotoInput" accept="image/*" style="display:none" />
+                </button>
+                <button class="tool-btn" id="cbbtn-note" title="添加便签 (N)">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h7l5-5V4a2 2 0 00-2-2zm-1 14v4.5L17.5 16H13z"
+                            fill="currentColor" />
+                    </svg>
+                    <span>便签</span>
+                </button>
+                <button class="tool-btn" id="cbbtn-pin" title="放置图钉 (T)">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="2" />
+                        <line x1="12" y1="12" x2="12" y2="21" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" />
+                    </svg>
+                    <span>图钉</span>
+                </button>
+                <button class="tool-btn" id="cbbtn-connect" title="连线 (C)">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="5" cy="12" r="3" fill="currentColor" />
+                        <circle cx="19" cy="12" r="3" fill="currentColor" />
+                        <path d="M8 12 Q12 18 16 12" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" />
+                    </svg>
+                    <span>连线</span>
+                </button>
+            </div>
+            <div class="toolbar-divider"></div>
+            <!-- 图钉颜色 -->
+            <div class="tool-group">
+                <span class="group-label">图钉色</span>
+                <div class="pin-colors">
+                    <button class="pin-color-btn active" data-color="#c0392b" style="background:#c0392b"
+                        title="红色"></button>
+                    <button class="pin-color-btn" data-color="#2980b9" style="background:#2980b9" title="蓝色"></button>
+                    <button class="pin-color-btn" data-color="#27ae60" style="background:#27ae60" title="绿色"></button>
+                    <button class="pin-color-btn" data-color="#f39c12" style="background:#f39c12" title="黄色"></button>
+                    <button class="pin-color-btn" data-color="#8e44ad" style="background:#8e44ad" title="紫色"></button>
+                    <input type="color" id="cbPinColorCustom" value="#c0392b" title="自定义颜色" class="cb-color-input" />
+                </div>
+            </div>
+            <div class="toolbar-divider"></div>
+            <!-- 便签颜色 -->
+            <div class="tool-group">
+                <span class="group-label">便签色</span>
+                <div class="pin-colors">
+                    <button class="note-color-btn active" data-color="#f7e96b" style="background:#f7e96b"
+                        title="黄色"></button>
+                    <button class="note-color-btn" data-color="#a8e6cf" style="background:#a8e6cf" title="绿色"></button>
+                    <button class="note-color-btn" data-color="#ffd3b6" style="background:#ffd3b6" title="橙色"></button>
+                    <button class="note-color-btn" data-color="#ffaaa5" style="background:#ffaaa5" title="粉色"></button>
+                    <button class="note-color-btn" data-color="#dcedc1" style="background:#dcedc1" title="浅绿"></button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <!-- 主题 -->
+                <div class="tool-group">
+                    <span class="group-label">主题</span>
+                    <button class="theme-btn active" data-theme="cork" title="经典软木">🪵</button>
+                    <button class="theme-btn" data-theme="noir" title="1920s 黑色电影">🎩</button>
+                    <button class="theme-btn" data-theme="chinese" title="中式探案">🏮</button>
+                    <button class="theme-btn" data-theme="federal" title="现代联邦探员">🦅</button>
+                </div>
+                <div class="toolbar-spacer"></div>
+                <div class="tool-group">
+                    <button class="tool-btn small" id="cbbtn-clear" title="清空画板">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        <span>清空</span>
+                    </button>
+                    <button class="export-btn" id="cbbtn-export">
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor" />
+                        </svg>
+                        导出 PNG
+                    </button>
+                </div>
+        </header>
+
+        <!-- 软木板画布 -->
+        <div class="cb-container" id="cbContainer">
+            <div class="cb-hint" id="cbHint">
+                <div class="cb-hint-inner">
+                    <div style="font-size:48px">🧵</div>
+                    <h2>线索墙</h2>
+                    <p>点击工具栏按钮添加照片、便签和图钉</p>
+                    <p style="font-size:12px;opacity:0.6">连接图钉之间的线条，还原侦探现场</p>
+                </div>
+            </div>
+            <canvas id="clueCanvas"></canvas>
+        </div>
+
+        <footer class="statusbar">
+            <span id="cbStatusMode">模式：选择</span>
+            <span id="cbStatusCount">元素：0</span>
+            <span id="cbStatusHint">提示：添加照片和便签，用图钉连线梳理线索</span>
+        </footer>
+
+    </div><!-- #cluePanel -->
+
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+            document.getElementById(tab + 'Panel').classList.add('active');
+            if (tab === 'clue' && !window._cbInited) {
+                window._cbInited = true;
+                ClueBoardManager.init();
+            }
+        }
+    </script>
+
+    <script src="app.js"></script>
+    <script src="clueboard.js"></script>
+</body>
+
+</html>
