@@ -798,3 +798,387 @@ body {
         repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 1px, transparent 0, transparent 24px),
         repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 1px, transparent 0, transparent 24px);
 }
+
+/* ======================================================
+   PROPS GENERATOR  (道具生成器)
+   ====================================================== */
+
+/* 模板标签按钮 */
+.props-template-tab {
+    padding: 4px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.props-template-tab:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.props-template-tab.active {
+    background: rgba(201, 168, 76, 0.18);
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+/* 左右分栏布局 */
+.props-layout {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.props-edit-pane {
+    width: 36%;
+    min-width: 260px;
+    max-width: 420px;
+    padding: 20px 18px;
+    overflow-y: auto;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.props-preview-pane {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    overflow: auto;
+    background:
+        repeating-conic-gradient(rgba(255, 255, 255, 0.02) 0% 25%, transparent 0% 50%) 0 0 / 20px 20px;
+}
+
+.props-preview-inner {
+    max-width: 520px;
+    width: 100%;
+}
+
+/* 表单控件 */
+.props-field-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 6px;
+}
+
+.props-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: 'Special Elite', serif;
+    resize: vertical;
+    outline: none;
+    transition: border-color var(--transition);
+}
+
+.props-input:focus {
+    border-color: var(--gold);
+}
+
+textarea.props-input {
+    min-height: 80px;
+    line-height: 1.6;
+}
+
+/* ── 文档公共样式 ── */
+.props-doc {
+    padding: 36px 32px;
+    border-radius: 2px;
+    box-shadow: 2px 4px 18px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+    font-family: 'Special Elite', serif;
+    line-height: 1.7;
+}
+
+/* ── 信件模板 ── */
+.props-letter {
+    background: #f0e4c8;
+    color: #2a1f0e;
+    background-image:
+        linear-gradient(transparent 28px, rgba(120, 80, 40, 0.12) 28px, rgba(120, 80, 40, 0.12) 29px, transparent 29px);
+    background-size: 100% 29px;
+}
+
+.props-letter-wax {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #c0392b 0%, #8b1a1a 80%);
+    box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.4);
+    opacity: 0.9;
+}
+
+.props-letter-date {
+    font-size: 12px;
+    text-align: right;
+    color: #6b4e20;
+    margin-bottom: 18px;
+}
+
+.props-letter-recipient {
+    font-size: 15px;
+    font-style: italic;
+    margin-bottom: 14px;
+}
+
+.props-letter-body {
+    font-size: 14px;
+    margin-bottom: 24px;
+    min-height: 120px;
+}
+
+.props-letter-sig {
+    font-size: 18px;
+    text-align: right;
+    font-style: italic;
+    color: #1a0e05;
+}
+
+/* ── 报纸模板 ── */
+.props-newspaper {
+    background: #e8e0cc;
+    color: #111;
+    font-family: 'Playfair Display', 'Times New Roman', serif;
+    padding: 24px 28px;
+}
+
+.props-np-masthead {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    border-bottom: 3px double #111;
+    padding-bottom: 6px;
+    margin-bottom: 4px;
+}
+
+.props-np-date {
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.props-np-rule {
+    border: none;
+    border-top: 1px solid #333;
+    margin: 8px 0;
+}
+
+.props-np-headline {
+    font-size: 24px;
+    font-weight: 900;
+    text-align: center;
+    text-transform: uppercase;
+    margin: 6px 0 4px;
+    line-height: 1.2;
+}
+
+.props-np-subtitle {
+    font-size: 13px;
+    text-align: center;
+    font-style: italic;
+    color: #444;
+    margin: 0 0 6px;
+}
+
+.props-np-body {
+    font-size: 13px;
+    column-count: 2;
+    column-gap: 18px;
+    column-rule: 1px solid rgba(0, 0, 0, 0.15);
+    line-height: 1.6;
+    min-height: 120px;
+    text-align: justify;
+}
+
+/* ── 电报模板 ── */
+.props-telegram {
+    background: #f5edd4;
+    color: #1a1a0a;
+    font-family: 'Courier New', Consolas, monospace;
+    padding: 20px 24px;
+    border: 3px double #8b7740;
+}
+
+.props-tg-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 0.12em;
+}
+
+.props-tg-num {
+    font-size: 11px;
+    color: #6b5e30;
+}
+
+.props-tg-strip {
+    height: 3px;
+    background: repeating-linear-gradient(90deg, #8b7740 0, #8b7740 8px, transparent 8px, transparent 12px);
+    margin: 8px 0;
+}
+
+.props-tg-field {
+    font-size: 13px;
+    padding: 2px 0;
+}
+
+.props-tg-body {
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    line-height: 1.8;
+    padding: 8px 0;
+    min-height: 60px;
+}
+
+.props-tg-stop {
+    color: #8b0000;
+}
+
+.props-tg-footer {
+    font-size: 11px;
+    text-align: right;
+    color: #6b5e30;
+}
+
+/* ── 档案卡模板 ── */
+.props-dossier {
+    background: #d8c8a0;
+    color: #1a1208;
+    font-family: 'Courier New', Consolas, monospace;
+    padding: 28px 24px;
+    border: 1px solid #a0905a;
+}
+
+.props-ds-stamp {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    font-size: 22px;
+    font-weight: bold;
+    color: rgba(180, 30, 30, 0.55);
+    border: 3px solid rgba(180, 30, 30, 0.55);
+    padding: 2px 10px;
+    transform: rotate(12deg);
+    letter-spacing: 0.12em;
+}
+
+.props-ds-case {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: #5a4e2a;
+    margin-bottom: 14px;
+}
+
+.props-ds-photo-area {
+    width: 90px;
+    height: 110px;
+    background: rgba(0, 0, 0, 0.06);
+    border: 1px dashed rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.props-ds-field {
+    font-size: 13px;
+    padding: 3px 0;
+    border-bottom: 1px dotted rgba(0, 0, 0, 0.15);
+}
+
+.props-ds-key {
+    font-weight: bold;
+    margin-right: 6px;
+}
+
+.props-ds-danger {
+    color: #8b0000;
+    font-weight: bold;
+}
+
+.props-ds-desc {
+    font-size: 13px;
+    line-height: 1.6;
+    margin-top: 10px;
+    min-height: 80px;
+}
+
+/* ── 文件上传控件 ── */
+.props-file-upload {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.props-upload-btn {
+    padding: 6px 14px;
+    border: 1px dashed rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.props-upload-btn:hover {
+    background: rgba(201, 168, 76, 0.12);
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+.props-remove-img-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 80, 80, 0.4);
+    background: rgba(255, 80, 80, 0.1);
+    color: #ff5555;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.props-remove-img-btn:hover {
+    background: rgba(255, 80, 80, 0.25);
+}
+
+/* ── 档案卡照片 ── */
+.props-ds-photo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 1px;
+}
+
+/* ── 自定义画布 ── */
+.props-custom-canvas-wrap {
+    border-radius: 4px;
+    box-shadow: 2px 4px 18px rgba(0, 0, 0, 0.5);
+}
+
+.props-custom-canvas-wrap .canvas-container {
+    border-radius: 4px;
+}

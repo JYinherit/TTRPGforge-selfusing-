@@ -272,7 +272,11 @@ const ClueBoardModule = (() => {
                 else cb.remove(act);
                 for (let i = allStrings.length - 1; i >= 0; i--) {
                     const s = allStrings[i];
-                    if (s.aObj === act || s.bObj === act) { cb.remove(s.shadow); cb.remove(s.main); allStrings.splice(i, 1); }
+                    if (s.aObj === act || s.bObj === act) {
+                        cb.remove(s.shadow); cb.remove(s.main);
+                        if (s.label) cb.remove(s.label);
+                        allStrings.splice(i, 1);
+                    }
                 }
                 cb.discardActiveObject(); cb.renderAll(); updateCount();
             }
@@ -325,10 +329,44 @@ const ClueBoardModule = (() => {
         const [shadow, main] = buildStringPaths(pa, pb);
         shadow._isStringPart = true; main._isStringPart = true;
         cb.insertAt(shadow, 0); cb.insertAt(main, 1);
-        allStrings.push({ shadow, main, aObj: a, bObj: b });
+        // 连线标签
+        const label = createStringLabel(pa, pb);
+        cb.add(label);
+        allStrings.push({ shadow, main, label, aObj: a, bObj: b });
         cb.renderAll(); updateCount();
     }
 
+    /** 创建连线中点标签 */
+    function createStringLabel(pa, pb) {
+        const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
+        const dist = Math.hypot(pb.x - pa.x, pb.y - pa.y);
+        const sag = Math.max(18, Math.min(70, dist * 0.22));
+        const t = T();
+        const label = new fabric.IText('...', {
+            left: mx, top: my + sag * 0.5,
+            fontSize: 11, fontFamily: 'Inter, sans-serif',
+            fill: t.stringLabelColor || '#fff',
+            textAlign: 'center',
+            originX: 'center', originY: 'center',
+            backgroundColor: t.stringLabelBg || 'rgba(0,0,0,0.55)',
+            padding: 4,
+            borderColor: '#ffd700', cornerSize: 6,
+            _isStringPart: true,
+            editable: true,
+        });
+        return label;
+    }
+
+    /** 更新标签位置到线段中点 */
+    function updateStringLabel(s) {
+        if (!s.label) return;
+        const pa = getPinPt(s.aObj), pb = getPinPt(s.bObj);
+        const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
+        const dist = Math.hypot(pb.x - pa.x, pb.y - pa.y);
+        const sag = Math.max(18, Math.min(70, dist * 0.22));
+        s.label.set({ left: mx, top: my + sag * 0.5 });
+        s.label.setCoords();
+    }
     function buildStringPaths(pa, pb) {
         const d = stringPathD(pa, pb);
         const t = T();
@@ -356,7 +394,7 @@ const ClueBoardModule = (() => {
         if (!movedObj) return;
         allStrings.forEach(s => {
             if (s.aObj !== movedObj && s.bObj !== movedObj) return;
-            // 移除旧线段（Fabric Path 的 pathOffset 不会随 path 更新而重算）
+            // 移除旧线段
             cb.remove(s.shadow);
             cb.remove(s.main);
             // 重建
@@ -368,6 +406,8 @@ const ClueBoardModule = (() => {
             cb.insertAt(newMain, 1);
             s.shadow = newShadow;
             s.main = newMain;
+            // 更新标签位置
+            updateStringLabel(s);
         });
         cb.requestRenderAll();
     }
@@ -572,13 +612,86 @@ const ClueBoardModule = (() => {
             const url = cb.toDataURL({ format: 'png', multiplier: dpr });
             const a = document.createElement('a'); a.href = url; a.download = 'cluewall.png'; a.click();
         };
+
+        // 标签按钮
+        document.querySelectorAll('.cb-tag-btn').forEach(btn => {
+            btn.onclick = () => {
+                const act = cb.getActiveObject();
+                if (!act || act._isStringPart) {
+                    setHint('请先选中便签或照片卡'); return;
+                }
+                toggleTag(act, btn.dataset.tag);
+            };
+        });
+    }
+
+    // ── 标签分类系统 ─────────────────────────────────────────────
+    const TAG_DEFS = {
+        person: { emoji: '👤', label: '人物', color: '#e74c3c' },
+        place: { emoji: '📍', label: '地点', color: '#3498db' },
+        evidence: { emoji: '🔍', label: '物证', color: '#2ecc71' },
+        time: { emoji: '🕐', label: '时间', color: '#f39c12' },
+    };
+
+    function toggleTag(obj, tagKey) {
+        if (!obj || obj.type !== 'group') return;
+        const tags = obj._tags || [];
+        const idx = tags.indexOf(tagKey);
+        if (idx >= 0) {
+            tags.splice(idx, 1);
+        } else {
+            tags.push(tagKey);
+        }
+        obj._tags = tags;
+        rebuildTagPills(obj);
+        cb.renderAll();
+        setHint(tags.length ? `标签：${tags.map(t => TAG_DEFS[t]?.emoji || t).join(' ')}` : '已清除所有标签');
+    }
+
+    function rebuildTagPills(group) {
+        // 移除旧的标签 pill
+        const existing = group.getObjects().filter(o => o._isTagPill);
+        existing.forEach(o => group.remove(o));
+
+        const tags = group._tags || [];
+        if (!tags.length) { group.addWithUpdate(); return; }
+
+        // 用 group 内部对象（非 pill）的边界来定位
+        const inner = group.getObjects().filter(o => !o._isTagPill);
+        if (!inner.length) return;
+        let minX = Infinity, maxX = -Infinity, maxY = -Infinity;
+        inner.forEach(o => {
+            const l = o.left - (o.width * o.scaleX) / 2;
+            const r = o.left + (o.width * o.scaleX) / 2;
+            const b = o.top + (o.height * o.scaleY) / 2;
+            minX = Math.min(minX, l);
+            maxX = Math.max(maxX, r);
+            maxY = Math.max(maxY, b);
+        });
+
+        const startX = minX + 4;
+        const pillY = maxY + 6;
+
+        tags.forEach((tagKey, i) => {
+            const def = TAG_DEFS[tagKey];
+            if (!def) return;
+            const pill = new fabric.Text(def.emoji, {
+                fontSize: 14,
+                left: startX + i * 22,
+                top: pillY,
+                originX: 'left', originY: 'top',
+                selectable: false, evented: false,
+                _isTagPill: true,
+            });
+            group.addWithUpdate(pill);
+        });
     }
 
     // ── 项目数据接口 ─────────────────────────────────────────────
     function collectData(callback) {
         if (!cb) { callback(null); return; }
         callback({
-            canvasJSON: cb.toJSON(['_isStringPart', 'selectable', 'evented', 'hasControls', 'hasBorders', 'subTargetCheck']),
+            canvasJSON: cb.toJSON(['_isStringPart', '_tags', '_isTagPill', 'selectable', 'evented', 'hasControls', 'hasBorders', 'subTargetCheck']),
             theme: currentTheme,
         });
     }

@@ -9,6 +9,7 @@
 UIModule.init();
 MapModule.init();
 ClueBoardModule.init();
+PropsModule.init();
 ProjectModule.init();
 
 // 默认激活地图标签

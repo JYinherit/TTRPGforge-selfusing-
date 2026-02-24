@@ -25,6 +25,9 @@
         <button class="tab-btn" id="tabClue">
             🧵 线索墙
         </button>
+        <button class="tab-btn" id="tabProps">
+            📜 道具生成
+        </button>
     </nav>
 
     <!-- ===== 地图批注面板 ===== -->
@@ -66,8 +69,51 @@
                     </svg>
                     <span>箭头</span>
                 </button>
+                <button class="tool-btn" id="btn-measure" data-mode="measure" title="测距工具 (M)">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M3 21L21 3M7 21l-4-4M15 3l6 6" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" />
+                    </svg>
+                    <span>测距</span>
+                </button>
+                <button class="tool-btn" id="btn-area" data-mode="area" title="区域标注 (Z)">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="3" y="5" width="18" height="14" rx="1" fill="rgba(220,80,80,0.3)" stroke="currentColor"
+                            stroke-width="2" stroke-dasharray="4 2" />
+                    </svg>
+                    <span>区域</span>
+                </button>
             </div>
             <div class="toolbar-divider"></div>
+            <!-- 区域颜色 -->
+            <div class="tool-group" id="areaColorGroup" style="display:none">
+                <span class="group-label">区域</span>
+                <button class="area-color-btn active" data-area="danger"
+                    style="background:rgba(220,50,50,0.5);width:18px;height:18px;border-radius:3px;border:2px solid transparent;cursor:pointer"
+                    title="危险区"></button>
+                <button class="area-color-btn" data-area="safe"
+                    style="background:rgba(50,180,80,0.5);width:18px;height:18px;border-radius:3px;border:2px solid transparent;cursor:pointer"
+                    title="安全区"></button>
+                <button class="area-color-btn" data-area="searched"
+                    style="background:rgba(50,120,220,0.5);width:18px;height:18px;border-radius:3px;border:2px solid transparent;cursor:pointer"
+                    title="已搜索"></button>
+                <button class="area-color-btn" data-area="interest"
+                    style="background:rgba(230,180,40,0.5);width:18px;height:18px;border-radius:3px;border:2px solid transparent;cursor:pointer"
+                    title="兴趣区"></button>
+            </div>
+            <!-- 测距比例 -->
+            <div class="tool-group" id="measureScaleGroup" style="display:none">
+                <span class="group-label">比例</span>
+                <input type="number" id="measureScaleInput" value="1" min="0.01" step="0.1"
+                    style="width:48px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:#fff;font-size:11px;padding:2px 4px;text-align:center"
+                    title="像素→单位换算系数">
+                <select id="measureUnit"
+                    style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:#fff;font-size:11px;padding:2px;cursor:pointer">
+                    <option value="m">m</option>
+                    <option value="ft">ft</option>
+                    <option value="格">格</option>
+                </select>
+            </div>
             <div class="tool-group">
                 <span class="group-label">标记</span>
                 <button class="pin-btn" data-marker="x" title="手绘红叉">
@@ -287,6 +333,15 @@
                     <button class="note-color-btn" data-color="#dcedc1" style="background:#dcedc1" title="浅绿"></button>
                 </div>
                 <div class="toolbar-divider"></div>
+                <!-- 标签分类 -->
+                <div class="tool-group">
+                    <span class="group-label">标签</span>
+                    <button class="cb-tag-btn pin-btn" data-tag="person" title="人物标签">👤</button>
+                    <button class="cb-tag-btn pin-btn" data-tag="place" title="地点标签">📍</button>
+                    <button class="cb-tag-btn pin-btn" data-tag="evidence" title="物证标签">🔍</button>
+                    <button class="cb-tag-btn pin-btn" data-tag="time" title="时间标签">🕐</button>
+                </div>
+                <div class="toolbar-divider"></div>
                 <!-- 主题 -->
                 <div class="tool-group">
                     <span class="group-label">主题</span>
@@ -334,11 +389,53 @@
 
     </div><!-- #cluePanel -->
 
+    <!-- ===== 道具生成器面板 ===== -->
+    <div id="propsPanel" class="tab-panel">
+        <header class="toolbar">
+            <div class="toolbar-divider"></div>
+            <div class="tool-group">
+                <span class="group-label">模板</span>
+                <button class="props-template-tab active" data-template="letter">📜 信件</button>
+                <button class="props-template-tab" data-template="newspaper">📰 报纸</button>
+                <button class="props-template-tab" data-template="telegram">⚡ 电报</button>
+                <button class="props-template-tab" data-template="dossier">📋 档案卡</button>
+                <button class="props-template-tab" data-template="custom">🎨 自定义</button>
+            </div>
+            <div class="toolbar-divider"></div>
+            <div class="tool-group">
+                <span class="group-label">做旧</span>
+                <input type="range" id="propsAgingSlider" min="0" max="1" step="0.05" value="0.5"
+                    style="width:80px;accent-color:#c9a84c">
+            </div>
+            <div class="toolbar-spacer"></div>
+            <div class="tool-group">
+                <button class="export-btn" id="propsExportBtn">
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor" />
+                    </svg>
+                    导出 PNG
+                </button>
+            </div>
+        </header>
+
+        <div class="props-layout">
+            <div class="props-edit-pane" id="propsFormArea">
+                <!-- 表单由 JS 动态生成 -->
+            </div>
+            <div class="props-preview-pane">
+                <div class="props-preview-inner" id="propsPreview">
+                    <!-- 预览由 JS 动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div><!-- #propsPanel -->
+
     <!-- ===== 模块化脚本（按依赖顺序加载） ===== -->
     <script src="eventbus.js"></script>
     <script src="ui.js"></script>
     <script src="map.js"></script>
     <script src="clueboard.js"></script>
+    <script src="props.js"></script>
     <script src="project.js"></script>
     <script src="app.js"></script><!-- 入口：初始化所有模块 -->
 </body>

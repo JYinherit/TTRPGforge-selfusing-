@@ -6,6 +6,67 @@
 
 const MapModule = (() => {
 
+    // ── 序列生成策略 ──────────────────────────────────────────────
+    const SEQ_STRATEGIES = {
+        arabic: {
+            name: '阿拉伯数字', hint: '1, 2, 3…',
+            convert(n) { return String(n); },
+            font: 'Special Elite, serif',
+            fontSizeFactor: 1.0,
+        },
+        alpha: {
+            name: '大写字母', hint: 'A, B, C…',
+            convert(n) {
+                let s = '';
+                while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); }
+                return s;
+            },
+            font: 'Special Elite, serif',
+            fontSizeFactor: 1.0,
+        },
+        roman: {
+            name: '罗马数字', hint: 'I, II, III…',
+            convert(n) {
+                const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+                const syms = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+                let s = '';
+                for (let i = 0; i < vals.length; i++) {
+                    while (n >= vals[i]) { s += syms[i]; n -= vals[i]; }
+                }
+                return s;
+            },
+            font: '"Playfair Display", "Times New Roman", serif',
+            fontSizeFactor: 0.82,
+        },
+        chinese: {
+            name: '中文大写', hint: '壹, 贰, 叁…',
+            convert(n) {
+                const digits = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+                const units = ['', '拾', '佰', '仟'];
+                if (n <= 0) return '零';
+                if (n < 10) return digits[n];
+                let s = '', pos = 0;
+                while (n > 0) {
+                    const d = n % 10;
+                    if (d !== 0) s = digits[d] + units[pos] + s;
+                    else if (s && !s.startsWith('零')) s = '零' + s;
+                    n = Math.floor(n / 10); pos++;
+                }
+                // 拾开头去首壹: 壹拾 → 拾
+                if (s.startsWith('壹拾')) s = s.slice(1);
+                return s;
+            },
+            font: '"ZCOOL XiaoWei", "STKaiti", "KaiTi", serif',
+            fontSizeFactor: 0.92,
+        },
+    };
+
+    /** 根据标签字符串计算 pin 最小半径 */
+    function pinMinRadius(label, baseR) {
+        const charW = label.length <= 1 ? 0 : (label.length - 1) * 6.5;
+        return Math.max(baseR, baseR * 0.6 + charW);
+    }
+
     // ── 状态 ──────────────────────────────────────────────────────
     const state = {
         mode: 'select',
@@ -16,6 +77,11 @@ const MapModule = (() => {
         lastPanPt: null,
         bgImage: null,
         legendEntries: [],
+        measurePt: null,
+        measurePreview: null,
+        areaColor: 'rgba(220,50,50,0.25)',
+        measureScale: 1,
+        seqStrategy: 'arabic',   // 当前序列策略
     };
 
     let canvas = null;
@@ -37,7 +103,7 @@ const MapModule = (() => {
         let stack = [], idx = -1;
 
         function save() {
-            const json = canvas.toJSON(['_isLegend', '_isBg', '_pinNum']);
+            const json = canvas.toJSON(['_isLegend', '_isBg', '_pinNum', '_pinData']);
             stack = stack.slice(0, idx + 1);
             stack.push(json);
             if (stack.length > MAX) stack.shift();
@@ -170,9 +236,10 @@ const MapModule = (() => {
     function syncLegendEntries() {
         const existing = legendTextareaEl.value.trim();
         const lines = existing ? existing.split('\n') : [];
-        state.legendEntries.map(e => e.num).forEach(n => {
-            if (!lines.some(l => l.trim().startsWith(n + ' -') || l.trim().startsWith(n + '-')))
-                lines.push(`${n} - `);
+        state.legendEntries.forEach(e => {
+            const disp = e.display || String(e.value || e.num || '?');
+            if (!lines.some(l => l.trim().startsWith(disp + ' -') || l.trim().startsWith(disp + '-')))
+                lines.push(`${disp} - `);
         });
         legendTextareaEl.value = lines.join('\n');
         legendTextareaEl.focus();
@@ -242,15 +309,34 @@ const MapModule = (() => {
                 canvas.hoverCursor = 'crosshair'; canvas.selection = false;
                 canvas.getObjects().forEach(o => { o.selectable = false; o.evented = false; });
                 setCropMode(false); break;
+            case 'measure':
+                canvas.isDrawingMode = false; canvas.defaultCursor = 'crosshair';
+                canvas.hoverCursor = 'crosshair'; canvas.selection = false;
+                canvas.getObjects().forEach(o => { o.selectable = false; o.evented = false; });
+                state.measurePt = null;
+                setCropMode(false); break;
+            case 'area':
+                canvas.isDrawingMode = false; canvas.defaultCursor = 'crosshair';
+                canvas.hoverCursor = 'crosshair'; canvas.selection = false;
+                canvas.getObjects().forEach(o => { o.selectable = false; o.evented = false; });
+                setCropMode(false); break;
         }
 
-        const modeNames = { select: '选择', rect: '手绘矩形', ellipse: '手绘椭圆', crop: '裁剪', pin: '放置标记', arrow: '手绘箭头' };
+        // 显隐辅助面板
+        const areaGrp = document.getElementById('areaColorGroup');
+        const measGrp = document.getElementById('measureScaleGroup');
+        if (areaGrp) areaGrp.style.display = mode === 'area' ? 'flex' : 'none';
+        if (measGrp) measGrp.style.display = mode === 'measure' ? 'flex' : 'none';
+
+        const modeNames = { select: '选择', rect: '手绘矩形', ellipse: '手绘椭圆', crop: '裁剪', pin: '放置标记', arrow: '手绘箭头', measure: '测距', area: '区域标注' };
         Bus.emit('status:update', { target: 'map', field: 'mode', text: `模式：${modeNames[mode] || mode}` });
         const hints = {
             select: '点击选中对象，Delete 删除，Ctrl+Z 撤销',
             rect: '拖拽绘制手绘矩形', ellipse: '拖拽绘制手绘椭圆',
             arrow: '拖拽绘制手绘箭头', crop: '拖拽框选裁剪区域',
             pin: '点击画布放置标记，Esc 退出',
+            measure: '点击两点测量距离，Esc 退出',
+            area: '拖拽绘制半透明区域标注，Esc 退出',
         };
         emit('hint', hints[mode] || '');
     }
@@ -276,7 +362,7 @@ const MapModule = (() => {
                 canvas.defaultCursor = 'grabbing'; return;
             }
             if (state.mode === 'rect' || state.mode === 'ellipse' || state.mode === 'arrow') { startDraw(opt); return; }
-            if (state.mode === 'crop') return; // cropOverlay 处理
+            if (state.mode === 'crop') return;
             if (state.mode === 'pin') {
                 if (state.pendingPin) { placePinAt(opt); }
                 else if (state.pendingNumberPin != null) {
@@ -285,6 +371,8 @@ const MapModule = (() => {
                     state.pendingNumberPin = null; setMode('select');
                 }
             }
+            if (state.mode === 'measure') { handleMeasureClick(opt); return; }
+            if (state.mode === 'area') { startDraw(opt); return; }
         });
 
         canvas.on('mouse:move', opt => {
@@ -296,12 +384,14 @@ const MapModule = (() => {
                 state.lastPanPt = { x: opt.e.clientX, y: opt.e.clientY };
                 return;
             }
-            if (['rect', 'ellipse', 'arrow'].includes(state.mode)) updateDraw(opt);
+            if (['rect', 'ellipse', 'arrow', 'area'].includes(state.mode)) updateDraw(opt);
+            if (state.mode === 'measure' && state.measurePt) updateMeasurePreview(opt);
         });
 
         canvas.on('mouse:up', opt => {
             if (state.isPanning) { state.isPanning = false; return; }
             if (['rect', 'ellipse', 'arrow'].includes(state.mode)) endDraw(opt);
+            if (state.mode === 'area') endAreaDraw(opt);
         });
 
         // 底图拖入
@@ -503,25 +593,58 @@ const MapModule = (() => {
             });
         });
 
-        // 动态数字 Pin 按钮（自增序号）
+        // 动态数字 Pin 按钮（自增序号）+ 序列策略选择
         const numPinContainer = document.createElement('div');
         numPinContainer.className = 'tool-group';
         numPinContainer.innerHTML = '<span class="group-label">序号</span>';
 
+        // 策略选择下拉
+        const seqSelect = document.createElement('select');
+        seqSelect.id = 'seqStrategySelect';
+        seqSelect.title = '序号策略';
+        seqSelect.style.cssText = 'background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:#fff;font-size:11px;padding:2px 4px;cursor:pointer;max-width:88px';
+        Object.entries(SEQ_STRATEGIES).forEach(([key, s]) => {
+            const opt = document.createElement('option');
+            opt.value = key; opt.textContent = `${s.name}`;
+            seqSelect.appendChild(opt);
+        });
+        seqSelect.value = state.seqStrategy;
+        numPinContainer.appendChild(seqSelect);
+
         const addBtn = document.createElement('button');
         addBtn.className = 'pin-btn';
+        addBtn.id = 'addSeqPinBtn';
         addBtn.title = '放置下一个序号标记';
-        addBtn.style.cssText = 'font-family:Special Elite,serif;font-size:13px;font-weight:bold;color:#e05050';
-        addBtn.textContent = '+序号';
+        addBtn.style.cssText = 'font-size:13px;font-weight:bold;color:#e05050;min-width:46px';
         numPinContainer.appendChild(addBtn);
 
+        // 更新按钮预览文字
+        function refreshSeqBtnLabel() {
+            const strat = SEQ_STRATEGIES[state.seqStrategy];
+            const nextVal = getNextPinNumber();
+            const preview = strat.convert(nextVal);
+            addBtn.textContent = `+${preview}`;
+            addBtn.style.fontFamily = strat.font;
+        }
+        refreshSeqBtnLabel();
+
+        seqSelect.addEventListener('change', () => {
+            state.seqStrategy = seqSelect.value;
+            refreshSeqBtnLabel();
+        });
+
         addBtn.addEventListener('click', () => {
-            const nextNum = getNextPinNumber();
-            state.pendingNumberPin = nextNum;
+            const nextVal = getNextPinNumber();
+            state.pendingNumberPin = nextVal;
             state.pendingPin = null;
             setMode('pin');
-            emit('hint', `点击画布放置序号标记 #${nextNum}，Esc 退出`);
+            const strat = SEQ_STRATEGIES[state.seqStrategy];
+            const label = strat.convert(nextVal);
+            emit('hint', `点击画布放置序号标记 ${label}，Esc 退出`);
         });
+
+        // 把刷新函数挂到 state 上供 addNumberedPin 后调用
+        state._refreshSeqBtn = refreshSeqBtnLabel;
 
         const toolbar = document.getElementById('toolbar');
         const dividers = toolbar.querySelectorAll('.toolbar-divider');
@@ -532,15 +655,17 @@ const MapModule = (() => {
         }
     }
 
-    /** 计算下一个序号：画布上已有的最大 _pinNum + 1 */
+    /** 计算下一个序号值：画布上已有的最大 value + 1 */
     function getNextPinNumber() {
         let maxNum = 0;
         canvas.getObjects().forEach(o => {
-            if (o._pinNum != null && o._pinNum > maxNum) maxNum = o._pinNum;
+            // 兼容旧数据 _pinNum 和新数据 _pinData
+            const v = o._pinData ? o._pinData.value : o._pinNum;
+            if (v != null && v > maxNum) maxNum = v;
         });
-        // 也检查 legendEntries
         state.legendEntries.forEach(e => {
-            if (e.num > maxNum) maxNum = e.num;
+            const v = e.value || e.num || 0;
+            if (v > maxNum) maxNum = v;
         });
         return maxNum + 1;
     }
@@ -555,22 +680,173 @@ const MapModule = (() => {
 
     function addNumberedPin(num, x, y) {
         const scale = parseFloat(markerScaleEl.value) || 1;
-        const r = Math.round(14 * scale), fs = Math.round(14 * scale);
-        const circle = new fabric.Circle({ radius: r, fill: '#b83232', stroke: '#e8c090', strokeWidth: 1.5, originX: 'center', originY: 'center', left: 0, top: 0 });
-        const label = new fabric.Text(String(num), { fontSize: fs, fontFamily: 'Special Elite, serif', fill: '#fff', fontWeight: 'bold', originX: 'center', originY: 'center', left: 0, top: 0 });
+        const strat = SEQ_STRATEGIES[state.seqStrategy] || SEQ_STRATEGIES.arabic;
+        const displayLabel = strat.convert(num);
+
+        // 自适应半径：根据标签字符宽度扩大圆
+        const baseR = Math.round(14 * scale);
+        const r = Math.round(pinMinRadius(displayLabel, baseR));
+        const fs = Math.round(14 * scale * strat.fontSizeFactor);
+
+        const circle = new fabric.Circle({
+            radius: r, fill: '#b83232', stroke: '#e8c090', strokeWidth: 1.5,
+            originX: 'center', originY: 'center', left: 0, top: 0,
+        });
+        const label = new fabric.Text(displayLabel, {
+            fontSize: fs, fontFamily: strat.font, fill: '#fff', fontWeight: 'bold',
+            originX: 'center', originY: 'center', left: 0, top: 0,
+        });
+        const pinData = { value: num, label: displayLabel, strategy: state.seqStrategy };
         const group = new fabric.Group([circle, label], {
             left: x, top: y, originX: 'center', originY: 'center',
             selectable: true, evented: true, hasControls: true, hasBorders: true,
-            cornerColor: '#c9a84c', cornerSize: 8, transparentCorners: false, _pinNum: num,
+            cornerColor: '#c9a84c', cornerSize: 8, transparentCorners: false,
+            _pinData: pinData,
+            _pinNum: num, // 向后兼容
         });
         canvas.add(group); canvas.setActiveObject(group); canvas.renderAll();
         history.save(); updateObjCount();
-        state.legendEntries.push({ num, label: '' });
+        state.legendEntries.push({ value: num, display: displayLabel, label: '' });
         showLegendPanel();
+        // 刷新按钮预览
+        if (state._refreshSeqBtn) state._refreshSeqBtn();
     }
 
     // ================================================================
-    // 自定义图章
+    // 测距工具
+    // ================================================================
+    function handleMeasureClick(opt) {
+        const pt = getCanvasPoint(opt);
+        if (!state.measurePt) {
+            // 第一点
+            state.measurePt = pt;
+            // 画十字标记
+            const mark = new fabric.Circle({
+                left: pt.x, top: pt.y, radius: 4,
+                fill: '#ffd700', stroke: '#000', strokeWidth: 1,
+                originX: 'center', originY: 'center',
+                selectable: false, evented: false, _isMeasure: true,
+            });
+            canvas.add(mark);
+            canvas.renderAll();
+            emit('hint', '点击第二个位置完成测距');
+        } else {
+            // 第二点——画最终虚线和标签
+            const pa = state.measurePt, pb = pt;
+            finalizeMeasure(pa, pb);
+            state.measurePt = null;
+            // 清除预览
+            if (state.measurePreview) {
+                canvas.remove(state.measurePreview);
+                state.measurePreview = null;
+            }
+            // 清除起点标记
+            canvas.getObjects().filter(o => o._isMeasure).forEach(o => canvas.remove(o));
+            emit('hint', '测距完成！继续点击测量或 Esc 退出');
+        }
+    }
+
+    function updateMeasurePreview(opt) {
+        const pt = getCanvasPoint(opt);
+        if (state.measurePreview) canvas.remove(state.measurePreview);
+        const pa = state.measurePt;
+        state.measurePreview = new fabric.Line([pa.x, pa.y, pt.x, pt.y], {
+            stroke: '#ffd700', strokeWidth: 1.5, strokeDashArray: [6, 4],
+            selectable: false, evented: false, _isMeasure: true,
+        });
+        canvas.add(state.measurePreview);
+        canvas.renderAll();
+    }
+
+    function finalizeMeasure(pa, pb) {
+        const scaleEl = document.getElementById('measureScaleInput');
+        const scaleVal = scaleEl ? parseFloat(scaleEl.value) || 1 : state.measureScale;
+        const pxDist = Math.hypot(pb.x - pa.x, pb.y - pa.y);
+        const realDist = (pxDist * scaleVal).toFixed(1);
+        const unit = document.getElementById('measureUnit')?.value || 'm';
+
+        // 虚线
+        const line = new fabric.Line([pa.x, pa.y, pb.x, pb.y], {
+            stroke: '#ffd700', strokeWidth: 2, strokeDashArray: [8, 5],
+            selectable: true, evented: true, hasControls: false,
+            cornerColor: '#c9a84c', cornerSize: 6,
+        });
+
+        // 距离标签
+        const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
+        const label = new fabric.Text(`${realDist} ${unit}`, {
+            left: mx, top: my - 12,
+            fontSize: 14, fontFamily: 'Special Elite, serif',
+            fill: '#ffd700', stroke: '#000', strokeWidth: 0.5,
+            originX: 'center', originY: 'center',
+            backgroundColor: 'rgba(0,0,0,0.6)', padding: 3,
+            selectable: false, evented: false,
+        });
+
+        const group = new fabric.Group([line, label], {
+            selectable: true, evented: true, hasControls: true, hasBorders: true,
+            cornerColor: '#c9a84c', cornerSize: 8, transparentCorners: false,
+        });
+        canvas.add(group); canvas.renderAll();
+        history.save(); updateObjCount();
+    }
+
+    // ================================================================
+    // 区域标注
+    // ================================================================
+    const AREA_COLORS = {
+        danger: { fill: 'rgba(220,50,50,0.25)', stroke: '#dc3232', label: '危险区' },
+        safe: { fill: 'rgba(50,180,80,0.25)', stroke: '#32b450', label: '安全区' },
+        searched: { fill: 'rgba(50,120,220,0.25)', stroke: '#3278dc', label: '已搜索' },
+        interest: { fill: 'rgba(230,180,40,0.25)', stroke: '#e6b428', label: '兴趣区' },
+    };
+
+    function endAreaDraw(opt) {
+        if (!drawStartPt) return;
+        const pt = getCanvasPoint(opt);
+        const x1 = Math.min(drawStartPt.x, pt.x), y1 = Math.min(drawStartPt.y, pt.y);
+        const w = Math.abs(pt.x - drawStartPt.x), h = Math.abs(pt.y - drawStartPt.y);
+        if (w < 10 || h < 10) { drawStartPt = null; if (drawPreview) { canvas.remove(drawPreview); drawPreview = null; } return; }
+
+        // 移除预览
+        if (drawPreview) { canvas.remove(drawPreview); drawPreview = null; }
+
+        // 获取当前区域颜色
+        const areaKey = document.querySelector('.area-color-btn.active')?.dataset?.area || 'danger';
+        const ac = AREA_COLORS[areaKey] || AREA_COLORS.danger;
+
+        // Rough.js 手绘矩形
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const svgEl = document.createElementNS(svgNS, 'svg');
+        const rc = rough.svg(svgEl);
+        const roughness = parseFloat(roughnessEl.value);
+        const node = rc.rectangle(x1, y1, w, h, {
+            stroke: ac.stroke, strokeWidth: 2,
+            roughness: roughness + 0.5, fill: ac.fill, fillStyle: 'cross-hatch',
+            seed: Math.floor(Math.random() * 9999),
+        });
+        const group = roughNodesToGroup([node], { stroke: ac.stroke, strokeWidth: 2 }, false);
+        if (group) {
+            group.set({ selectable: true, evented: true, hasControls: true, hasBorders: true, cornerColor: '#c9a84c', cornerSize: 8, transparentCorners: false, opacity: 0.8 });
+            canvas.add(group);
+        }
+
+        // 标签
+        const areaLabel = new fabric.IText(ac.label, {
+            left: x1 + w / 2, top: y1 + h / 2,
+            fontSize: 16, fontFamily: 'Special Elite, serif',
+            fill: ac.stroke, fontWeight: 'bold',
+            originX: 'center', originY: 'center',
+            backgroundColor: 'rgba(0,0,0,0.35)', padding: 4,
+            selectable: true, evented: true,
+            hasControls: false,
+        });
+        canvas.add(areaLabel);
+
+        canvas.renderAll();
+        history.save(); updateObjCount();
+        drawStartPt = null;
+    }
     // ================================================================
     function setupCustomStamp() {
         customStampInput.addEventListener('change', e => {
@@ -662,6 +938,26 @@ const MapModule = (() => {
         });
         document.getElementById('btn-undo').addEventListener('click', () => history.undo());
         document.getElementById('btn-redo').addEventListener('click', () => history.redo());
+
+        // 区域颜色按钮
+        document.querySelectorAll('.area-color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.area-color-btn').forEach(b => {
+                    b.classList.remove('active');
+                    b.style.borderColor = 'transparent';
+                });
+                btn.classList.add('active');
+                btn.style.borderColor = '#ffd700';
+            });
+        });
+
+        // 快捷键
+        window.addEventListener('keydown', e => {
+            if (!document.getElementById('mapPanel').classList.contains('active')) return;
+            if (['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
+            if (e.key === 'm' || e.key === 'M') { setMode('measure'); e.preventDefault(); }
+            if (e.key === 'z' && !e.ctrlKey && !e.metaKey) { setMode('area'); e.preventDefault(); }
+        });
     }
 
     function setupKeyboard() {
