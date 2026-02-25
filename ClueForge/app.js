@@ -14,6 +14,7 @@ NotesModule.init();
 TimelineModule.init();
 ProjectModule.init();
 SettingsModule.init();
+AIModule.init();
 
 // 默认激活地图标签
 UIModule.switchTab('map');
