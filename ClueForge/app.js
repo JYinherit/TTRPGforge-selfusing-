@@ -10,7 +10,10 @@ UIModule.init();
 MapModule.init();
 ClueBoardModule.init();
 PropsModule.init();
+NotesModule.init();
+TimelineModule.init();
 ProjectModule.init();
+SettingsModule.init();
 
 // 默认激活地图标签
 UIModule.switchTab('map');

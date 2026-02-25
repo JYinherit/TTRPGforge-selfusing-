@@ -92,6 +92,94 @@ const MapModule = (() => {
 
     let canvas = null;
 
+    // ── 多图层系统 ───────────────────────────────────────────────
+    const LAYERS = [
+        { key: 'base', name: '底图层', icon: '🖼', zBase: 0 },
+        { key: 'annotate', name: '批注层', icon: '✏️', zBase: 1000 },
+        { key: 'marker', name: '标记层', icon: '📌', zBase: 2000 },
+    ];
+    const layerState = {};
+    LAYERS.forEach(l => { layerState[l.key] = { visible: true, locked: false }; });
+
+    /** 给对象标记所属图层 */
+    function assignLayer(obj, layerKey) {
+        if (!obj) return;
+        obj._layer = layerKey;
+    }
+
+    /** 批量设置图层可见性 */
+    function setLayerVisibility(layerKey, visible) {
+        layerState[layerKey].visible = visible;
+        canvas.getObjects().forEach(o => {
+            if (o._layer === layerKey) o.set('visible', visible);
+        });
+        canvas.requestRenderAll();
+    }
+
+    /** 批量设置图层锁定 */
+    function setLayerLocked(layerKey, locked) {
+        layerState[layerKey].locked = locked;
+        canvas.getObjects().forEach(o => {
+            if (o._layer === layerKey) {
+                o.set({ selectable: !locked, evented: !locked });
+            }
+        });
+        canvas.requestRenderAll();
+    }
+
+    /** 创建图层面板 UI */
+    function setupLayerPanel() {
+        const html = `
+<div id="layerPanel" class="layer-panel">
+  <div class="layer-header" id="layerDragHandle">
+    <span>📚 图层</span>
+    <button class="layer-toggle-btn" id="layerPanelToggle" title="收起">▾</button>
+  </div>
+  <div class="layer-list" id="layerList">
+    ${LAYERS.slice().reverse().map(l => `
+    <div class="layer-row" data-layer="${l.key}">
+      <button class="layer-vis-btn" data-layer="${l.key}" title="显隐">${l.icon}</button>
+      <span class="layer-name">${l.name}</span>
+      <button class="layer-lock-btn" data-layer="${l.key}" title="锁定">🔓</button>
+    </div>`).join('')}
+  </div>
+</div>`;
+        container.insertAdjacentHTML('beforeend', html);
+
+        // 显隐按钮
+        document.querySelectorAll('.layer-vis-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.layer;
+                const newVis = !layerState[key].visible;
+                setLayerVisibility(key, newVis);
+                btn.style.opacity = newVis ? '1' : '0.3';
+                btn.parentElement.classList.toggle('layer-hidden', !newVis);
+            });
+        });
+
+        // 锁定按钮
+        document.querySelectorAll('.layer-lock-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.layer;
+                const newLock = !layerState[key].locked;
+                setLayerLocked(key, newLock);
+                btn.textContent = newLock ? '🔒' : '🔓';
+                btn.parentElement.classList.toggle('layer-locked', newLock);
+            });
+        });
+
+        // 面板收起/展开
+        const toggle = document.getElementById('layerPanelToggle');
+        const list = document.getElementById('layerList');
+        toggle.addEventListener('click', () => {
+            list.classList.toggle('collapsed');
+            toggle.textContent = list.classList.contains('collapsed') ? '▸' : '▾';
+        });
+
+        // 拖拽
+        makeDraggable(document.getElementById('layerPanel'), document.getElementById('layerDragHandle'));
+    }
+
     // DOM 缓存
     let container, dropHint, fileInput, customStampInput;
     let strokeColorEl, strokeWidthEl, roughnessEl, markerScaleEl, filterSelect;
@@ -114,6 +202,7 @@ const MapModule = (() => {
             stack.push(json);
             if (stack.length > MAX) stack.shift();
             idx = stack.length - 1;
+            Bus.emit('project:auto-save');
         }
         function undo() { if (idx <= 0) return; idx--; restore(stack[idx]); }
         function redo() { if (idx >= stack.length - 1) return; idx++; restore(stack[idx]); }
@@ -157,6 +246,7 @@ const MapModule = (() => {
         window.addEventListener('resize', resizeCanvas);
 
         setupLegend();
+        setupLayerPanel();
         setupCanvasEvents();
         setupToolbar();
         setupPins();
@@ -273,6 +363,7 @@ const MapModule = (() => {
             editable: true, selectable: true, hasControls: true,
             _isLegend: true,
         });
+        assignLayer(box, 'annotate');
         canvas.add(box); canvas.setActiveObject(box); canvas.renderAll();
         history.save();
         legendPanelEl.classList.remove('visible');
@@ -438,6 +529,7 @@ const MapModule = (() => {
             hasControls: false, hasBorders: false,
             lockMovementX: true, lockMovementY: true, _isBg: true,
         });
+        assignLayer(img, 'base');
         canvas.insertAt(img, 0);
         state.bgImage = img;
         dropHint.classList.add('hidden');
@@ -469,7 +561,7 @@ const MapModule = (() => {
         const cur = getCanvasPoint(opt);
         if (drawPreview) { canvas.remove(drawPreview); drawPreview = null; }
         drawPreview = createRoughObject(drawStartPt, cur, true);
-        if (drawPreview) canvas.add(drawPreview);
+        if (drawPreview) { assignLayer(drawPreview, 'annotate'); canvas.add(drawPreview); }
         canvas.requestRenderAll();
     }
 
@@ -479,7 +571,7 @@ const MapModule = (() => {
         if (drawPreview) { canvas.remove(drawPreview); drawPreview = null; }
         if (Math.abs(cur.x - drawStartPt.x) < 5 && Math.abs(cur.y - drawStartPt.y) < 5) { drawStartPt = null; return; }
         const obj = createRoughObject(drawStartPt, cur, false);
-        if (obj) { canvas.add(obj); canvas.renderAll(); history.save(); updateObjCount(); }
+        if (obj) { assignLayer(obj, 'annotate'); canvas.add(obj); canvas.renderAll(); history.save(); updateObjCount(); }
         drawStartPt = null;
     }
 
@@ -726,6 +818,7 @@ const MapModule = (() => {
             obj = createRoughMarker(state.pendingPin, pt.x, pt.y);
         }
         if (!obj) return;
+        assignLayer(obj, 'marker');
         canvas.add(obj); canvas.renderAll(); history.save(); updateObjCount();
     }
 
@@ -762,6 +855,7 @@ const MapModule = (() => {
         const pinData = { value: num, label: displayLabel, strategy: state.seqStrategy, theme: state.theme };
         group._pinData = pinData;
         group._pinNum = num;
+        assignLayer(group, 'marker');
         canvas.add(group); canvas.setActiveObject(group); canvas.renderAll();
         history.save(); updateObjCount();
         state.legendEntries.push({ value: num, display: displayLabel, label: '' });
@@ -784,6 +878,7 @@ const MapModule = (() => {
                 originX: 'center', originY: 'center',
                 selectable: false, evented: false, _isMeasure: true,
             });
+            assignLayer(mark, 'annotate');
             canvas.add(mark);
             canvas.renderAll();
             emit('hint', '点击第二个位置完成测距');
@@ -811,6 +906,7 @@ const MapModule = (() => {
             stroke: '#ffd700', strokeWidth: 1.5, strokeDashArray: [6, 4],
             selectable: false, evented: false, _isMeasure: true,
         });
+        assignLayer(state.measurePreview, 'annotate');
         canvas.add(state.measurePreview);
         canvas.renderAll();
     }
@@ -844,6 +940,7 @@ const MapModule = (() => {
             selectable: true, evented: true, hasControls: true, hasBorders: true,
             cornerColor: '#c9a84c', cornerSize: 8, transparentCorners: false,
         });
+        assignLayer(group, 'annotate');
         canvas.add(group); canvas.renderAll();
         history.save(); updateObjCount();
     }
@@ -885,6 +982,7 @@ const MapModule = (() => {
         const group = roughNodesToGroup([node], { stroke: ac.stroke, strokeWidth: 2 }, false);
         if (group) {
             group.set({ selectable: true, evented: true, hasControls: true, hasBorders: true, cornerColor: '#c9a84c', cornerSize: 8, transparentCorners: false, opacity: 0.8 });
+            assignLayer(group, 'annotate');
             canvas.add(group);
         }
 
@@ -898,6 +996,7 @@ const MapModule = (() => {
             selectable: true, evented: true,
             hasControls: false,
         });
+        assignLayer(areaLabel, 'annotate');
         canvas.add(areaLabel);
 
         canvas.renderAll();
@@ -907,31 +1006,77 @@ const MapModule = (() => {
     // ================================================================
     function setupCustomStamp() {
         customStampInput.addEventListener('change', e => {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = ev => {
-                state.pendingPin = null;
-                canvas.defaultCursor = 'crosshair'; canvas.selection = false;
-                const handler = opt => {
-                    const pt = getCanvasPoint(opt);
-                    fabric.Image.fromURL(ev.target.result, img => {
-                        const sz = 60;
-                        img.set({
-                            left: pt.x, top: pt.y, scaleX: sz / img.width, scaleY: sz / img.height,
-                            originX: 'center', originY: 'center',
-                            selectable: true, evented: true, hasControls: true, hasBorders: true,
-                            cornerColor: '#c9a84c', cornerSize: 8, transparentCorners: false,
-                        });
-                        canvas.add(img); canvas.setActiveObject(img); canvas.renderAll();
-                        history.save(); updateObjCount();
-                    }, { crossOrigin: 'anonymous' });
-                    canvas.off('mouse:down', handler);
-                    setMode('select');
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+
+            if (files.length === 1) {
+                // 单图：保持原有精确点击放置逻辑
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    state.pendingPin = null;
+                    canvas.defaultCursor = 'crosshair'; canvas.selection = false;
+                    const handler = opt => {
+                        const pt = getCanvasPoint(opt);
+                        fabric.Image.fromURL(ev.target.result, img => {
+                            const sz = 60;
+                            img.set({
+                                left: pt.x, top: pt.y, scaleX: sz / img.width, scaleY: sz / img.height,
+                                originX: 'center', originY: 'center',
+                                selectable: true, evented: true, hasControls: true, hasBorders: true,
+                                cornerColor: '#c9a84c', cornerSize: 8, transparentCorners: false,
+                            });
+                            assignLayer(img, 'marker');
+                            canvas.add(img); canvas.setActiveObject(img); canvas.renderAll();
+                            history.save(); updateObjCount();
+                        }, { crossOrigin: 'anonymous' });
+                        canvas.off('mouse:down', handler);
+                        setMode('select');
+                    };
+                    canvas.on('mouse:down', handler);
+                    emit('hint', '点击画布放置自定义图章');
                 };
-                canvas.on('mouse:down', handler);
-                emit('hint', '点击画布放置自定义图章');
-            };
-            reader.readAsDataURL(file);
+                reader.readAsDataURL(files[0]);
+            } else {
+                // 多图：自动瀑布流居中导入
+                state.pendingPin = null;
+                setMode('select');
+                emit('hint', `正在批量导入 ${files.length} 张图片...`);
+
+                const vpt = canvas.viewportTransform;
+                const zoom = canvas.getZoom();
+                const centerX = (canvas.width / 2 - vpt[4]) / zoom;
+                const centerY = (canvas.height / 2 - vpt[5]) / zoom;
+
+                let loadedCount = 0;
+                files.forEach((file, idx) => {
+                    const reader = new FileReader();
+                    reader.onload = ev => {
+                        fabric.Image.fromURL(ev.target.result, img => {
+                            const sz = 60;
+                            const offset = idx * 20;
+                            img.set({
+                                left: centerX + offset, top: centerY + offset,
+                                scaleX: sz / img.width, scaleY: sz / img.height,
+                                originX: 'center', originY: 'center',
+                                selectable: true, evented: true, hasControls: true, hasBorders: true,
+                                cornerColor: '#c9a84c', cornerSize: 8, transparentCorners: false,
+                            });
+                            assignLayer(img, 'marker');
+                            canvas.add(img);
+
+                            loadedCount++;
+                            if (loadedCount === files.length) {
+                                canvas.setActiveObject(img);
+                                canvas.renderAll();
+                                history.save();
+                                updateObjCount();
+                                emit('hint', '批量图章导入完毕！');
+                            }
+                        }, { crossOrigin: 'anonymous' });
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
             e.target.value = '';
         });
     }
