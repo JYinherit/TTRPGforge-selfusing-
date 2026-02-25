@@ -67,6 +67,11 @@ const MapModule = (() => {
         return Math.max(baseR, baseR * 0.6 + charW);
     }
 
+    // 注册主题扩展的序号策略
+    if (typeof MAP_THEMES !== 'undefined' && MAP_THEMES.EXTRA_STRATEGIES) {
+        Object.assign(SEQ_STRATEGIES, MAP_THEMES.EXTRA_STRATEGIES);
+    }
+
     // ── 状态 ──────────────────────────────────────────────────────
     const state = {
         mode: 'select',
@@ -81,7 +86,8 @@ const MapModule = (() => {
         measurePreview: null,
         areaColor: 'rgba(220,50,50,0.25)',
         measureScale: 1,
-        seqStrategy: 'arabic',   // 当前序列策略
+        seqStrategy: 'arabic',
+        theme: 'default',  // 当前主题 key
     };
 
     let canvas = null;
@@ -589,9 +595,46 @@ const MapModule = (() => {
                 state.pendingPin = btn.dataset.marker;
                 state.pendingNumberPin = null;
                 setMode('pin');
-                emit('hint', '点击画布放置手绘标记，可连续放置，Esc 退出');
+                // 根据主题显示不同提示
+                const theme = typeof MAP_THEMES !== 'undefined' && MAP_THEMES[state.theme];
+                const label = (theme && theme.markerLabels) ? (theme.markerLabels[btn.dataset.marker] || btn.dataset.marker) : btn.dataset.marker;
+                emit('hint', `点击画布放置${label}标记，可连续放置，Esc 退出`);
             });
         });
+
+        // ── 主题选择器 ──────────────────────────────────────────
+        if (typeof MAP_THEMES !== 'undefined') {
+            const themeGroup = document.createElement('div');
+            themeGroup.className = 'tool-group';
+            themeGroup.innerHTML = '<span class="group-label">风格</span>';
+            const themeSelect = document.createElement('select');
+            themeSelect.id = 'mapThemeSelect';
+            themeSelect.title = '地图主题风格';
+            themeSelect.style.cssText = 'background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:#fff;font-size:11px;padding:2px 4px;cursor:pointer;max-width:120px';
+            Object.entries(MAP_THEMES).forEach(([key, t]) => {
+                if (key === 'EXTRA_STRATEGIES') return;
+                const opt = document.createElement('option');
+                opt.value = key; opt.textContent = t.name;
+                themeSelect.appendChild(opt);
+            });
+            themeSelect.value = state.theme;
+            themeSelect.addEventListener('change', () => {
+                state.theme = themeSelect.value;
+                const theme = MAP_THEMES[state.theme];
+                // 强制序号策略
+                if (theme && theme.seqStrategy) {
+                    state.seqStrategy = theme.seqStrategy;
+                    const seqSel = document.getElementById('seqStrategySelect');
+                    if (seqSel) seqSel.value = state.seqStrategy;
+                }
+                if (state._refreshSeqBtn) state._refreshSeqBtn();
+                emit('hint', `已切换到：${theme ? theme.name : state.theme}`);
+            });
+            themeGroup.appendChild(themeSelect);
+            const toolbar = document.getElementById('toolbar');
+            const firstDivider = toolbar.querySelector('.toolbar-divider');
+            if (firstDivider) toolbar.insertBefore(themeGroup, firstDivider.nextSibling);
+        }
 
         // 动态数字 Pin 按钮（自增序号）+ 序列策略选择
         const numPinContainer = document.createElement('div');
@@ -673,7 +716,15 @@ const MapModule = (() => {
     function placePinAt(opt) {
         const pt = getCanvasPoint(opt);
         if (!state.pendingPin) return;
-        const obj = createRoughMarker(state.pendingPin, pt.x, pt.y);
+        // 主题路由
+        const theme = typeof MAP_THEMES !== 'undefined' && MAP_THEMES[state.theme];
+        const scale = parseFloat(markerScaleEl.value) || 1;
+        let obj;
+        if (theme && theme.createMarker && state.theme !== 'default') {
+            obj = theme.createMarker(state.pendingPin, pt.x, pt.y, scale);
+        } else {
+            obj = createRoughMarker(state.pendingPin, pt.x, pt.y);
+        }
         if (!obj) return;
         canvas.add(obj); canvas.renderAll(); history.save(); updateObjCount();
     }
@@ -683,32 +734,38 @@ const MapModule = (() => {
         const strat = SEQ_STRATEGIES[state.seqStrategy] || SEQ_STRATEGIES.arabic;
         const displayLabel = strat.convert(num);
 
-        // 自适应半径：根据标签字符宽度扩大圆
-        const baseR = Math.round(14 * scale);
-        const r = Math.round(pinMinRadius(displayLabel, baseR));
-        const fs = Math.round(14 * scale * strat.fontSizeFactor);
-
-        const circle = new fabric.Circle({
-            radius: r, fill: '#b83232', stroke: '#e8c090', strokeWidth: 1.5,
-            originX: 'center', originY: 'center', left: 0, top: 0,
-        });
-        const label = new fabric.Text(displayLabel, {
-            fontSize: fs, fontFamily: strat.font, fill: '#fff', fontWeight: 'bold',
-            originX: 'center', originY: 'center', left: 0, top: 0,
-        });
-        const pinData = { value: num, label: displayLabel, strategy: state.seqStrategy };
-        const group = new fabric.Group([circle, label], {
-            left: x, top: y, originX: 'center', originY: 'center',
-            selectable: true, evented: true, hasControls: true, hasBorders: true,
-            cornerColor: '#c9a84c', cornerSize: 8, transparentCorners: false,
-            _pinData: pinData,
-            _pinNum: num, // 向后兼容
-        });
+        // 主题路由
+        const theme = typeof MAP_THEMES !== 'undefined' && MAP_THEMES[state.theme];
+        let group;
+        if (theme && theme.createPin && state.theme !== 'default') {
+            group = theme.createPin(num, x, y, scale, strat.convert.bind(strat));
+            group.set({ left: x, top: y, originX: 'center', originY: 'center' });
+        } else {
+            // 默认手绘圆 Pin
+            const baseR = Math.round(14 * scale);
+            const r = Math.round(pinMinRadius(displayLabel, baseR));
+            const fs = Math.round(14 * scale * strat.fontSizeFactor);
+            const circle = new fabric.Circle({
+                radius: r, fill: '#b83232', stroke: '#e8c090', strokeWidth: 1.5,
+                originX: 'center', originY: 'center', left: 0, top: 0,
+            });
+            const label = new fabric.Text(displayLabel, {
+                fontSize: fs, fontFamily: strat.font, fill: '#fff', fontWeight: 'bold',
+                originX: 'center', originY: 'center', left: 0, top: 0,
+            });
+            group = new fabric.Group([circle, label], {
+                left: x, top: y, originX: 'center', originY: 'center',
+                selectable: true, evented: true, hasControls: true, hasBorders: true,
+                cornerColor: '#c9a84c', cornerSize: 8, transparentCorners: false,
+            });
+        }
+        const pinData = { value: num, label: displayLabel, strategy: state.seqStrategy, theme: state.theme };
+        group._pinData = pinData;
+        group._pinNum = num;
         canvas.add(group); canvas.setActiveObject(group); canvas.renderAll();
         history.save(); updateObjCount();
         state.legendEntries.push({ value: num, display: displayLabel, label: '' });
         showLegendPanel();
-        // 刷新按钮预览
         if (state._refreshSeqBtn) state._refreshSeqBtn();
     }
 
