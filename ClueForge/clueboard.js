@@ -54,6 +54,7 @@ const ClueBoardModule = (() => {
     let pinColor = '#c0392b';
     let noteColor = '#f7e96b';
     let connectFrom = null;
+    let tempLineShadow = null, tempLineMain = null;
     let currentTheme = 'cork';
     const allStrings = [];
     let inited = false;
@@ -164,6 +165,21 @@ const ClueBoardModule = (() => {
                 vpt[5] += opt.e.clientY - lastPanPt.y;
                 cb.requestRenderAll();
                 lastPanPt = { x: opt.e.clientX, y: opt.e.clientY };
+            } else if (cbMode === 'connect' && connectFrom) {
+                const pt = cb.getPointer(opt.e);
+                const pa = getPinPt(connectFrom);
+                if (!tempLineMain) {
+                    const [shadow, main] = buildStringPaths(pa, pt);
+                    tempLineShadow = shadow; tempLineMain = main;
+                    shadow.opacity = 0.5; main.opacity = 0.5;
+                    shadow.evented = false; main.evented = false;
+                    cb.insertAt(tempLineShadow, 0); cb.insertAt(tempLineMain, 1);
+                } else {
+                    const d = stringPathD(pa, pt);
+                    tempLineShadow.set({ path: new fabric.Path(d).path });
+                    tempLineMain.set({ path: new fabric.Path(d).path });
+                }
+                cb.requestRenderAll();
             }
         });
 
@@ -309,14 +325,24 @@ const ClueBoardModule = (() => {
             tgt._origBC = tgt.borderColor;
             tgt.set({ borderColor: '#ffd700', borderScaleFactor: 3 });
             cb.setActiveObject(tgt); cb.requestRenderAll();
-            setHint('已选中第一个目标，继续点击第二个目标');
+            setHint('已选中节点，可以继续点选其他节点完成连线（ESC取消）');
         } else if (tgt !== connectFrom) {
             drawString(connectFrom, tgt);
+            clearTempLine();
             connectFrom.set({ borderColor: connectFrom._origBC || '' });
-            connectFrom = null;
-            cb.discardActiveObject(); cb.requestRenderAll();
-            setHint('连线完成！可继续连接，或按 Esc 退出');
+            // Allow chaining connections seamlessly
+            connectFrom = tgt;
+            tgt._origBC = tgt.borderColor;
+            tgt.set({ borderColor: '#ffd700', borderScaleFactor: 3 });
+            cb.setActiveObject(tgt); cb.requestRenderAll();
+            setHint('连线完成！已自动选中新节点，可继续连线下一节点（ESC取消）');
         }
+    }
+
+    function clearTempLine() {
+        if (tempLineShadow) { cb.remove(tempLineShadow); tempLineShadow = null; }
+        if (tempLineMain) { cb.remove(tempLineMain); tempLineMain = null; }
+        if (cb) cb.requestRenderAll();
     }
 
     function getPinPt(obj) {
@@ -541,6 +567,10 @@ const ClueBoardModule = (() => {
 
     // ── 模式切换 ─────────────────────────────────────────────────
     function setCBMode(mode) {
+        if (cbMode === 'connect' && connectFrom) {
+            connectFrom.set({ borderColor: connectFrom._origBC || '' });
+        }
+        clearTempLine();
         cbMode = mode; connectFrom = null;
         document.querySelectorAll('#cluePanel .tool-btn').forEach(b => b.classList.remove('active'));
         const active = document.getElementById('cbbtn-' + mode);

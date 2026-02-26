@@ -131,7 +131,7 @@ ${question}`;
 
         } catch (e) {
             console.error('复制失败', e);
-            alert('复制到剪贴板失败，请手动全选预览框及问题并复制内容。\\n\\n错误信息: ' + e.message);
+            alert('复制到剪贴板失败，请手动全选预览框及问题并复制内容。\n\n错误信息: ' + e.message);
         }
     }
 
@@ -187,7 +187,7 @@ ${question}`;
             });
             if (hasEvents) {
                 parts.push('【时间线】');
-                parts.push(tlLines.join('\\n'));
+                parts.push(tlLines.join('\n'));
                 parts.push('');
             }
         }
@@ -217,7 +217,7 @@ ${question}`;
             }
             if (mapLines.length > 0) {
                 parts.push('【地图标注】');
-                parts.push(mapLines.join('\\n'));
+                parts.push(mapLines.join('\n'));
                 parts.push('');
             }
         }
@@ -226,7 +226,7 @@ ${question}`;
             return "当前项目似乎是空白的，没有捕捉到任何文本或线索。";
         }
 
-        return parts.join('\\n');
+        return parts.join('\n');
     }
 
     // 从 Fabric 序列化对象中提取文本的通用方法

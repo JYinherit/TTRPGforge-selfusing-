@@ -32,6 +32,8 @@ const TimelineModule = (() => {
 
     let container, canvas, ctx;
     let panelEl;
+    let currentEditEvent = null;
+    let currentEditLane = null;
 
     // ── 初始化 ─────────────────────────────────────────────────
     function init() {
@@ -51,6 +53,7 @@ const TimelineModule = (() => {
             addLane('玩家发现');
         }
 
+        buildModal();
         setupToolbar();
         bindCanvasEvents();
         render();
@@ -258,17 +261,78 @@ const TimelineModule = (() => {
     }
 
     // ── 事件编辑弹框 ─────────────────────────────────────────────
+    function buildModal() {
+        if (document.getElementById('tlModalOverlay')) return;
+        const html = `
+<div class="settings-overlay" id="tlModalOverlay"></div>
+<div class="settings-panel" id="tlModal">
+    <div class="settings-header">
+        <h3>✏️ 编辑事件</h3>
+        <button id="tlModalClose" class="layer-toggle-btn" title="关闭">✕</button>
+    </div>
+    <div class="settings-content">
+        <div class="setting-group">
+            <h4>事件标题</h4>
+            <input type="text" id="tlTitle" class="props-input" style="font-family:inherit" />
+        </div>
+        <div class="setting-group">
+            <h4>时间标注</h4>
+            <input type="text" id="tlTime" class="props-input" style="font-family:inherit" placeholder="例如：1920-3-15 上午" />
+        </div>
+        <div class="setting-group">
+            <h4>描述 (可选)</h4>
+            <textarea id="tlDesc" class="props-input" style="font-family:inherit; min-height:60px"></textarea>
+        </div>
+        <div class="setting-actions" style="flex-direction:row; justify-content:flex-end; margin-top:8px">
+            <button class="set-btn danger" id="tlDeleteBtn" style="margin-right:auto">删除事件</button>
+            <button class="set-btn" id="tlCancelBtn">取消</button>
+            <button class="set-btn primary" id="tlSaveBtn">保存</button>
+        </div>
+    </div>
+</div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', html);
+
+        document.getElementById('tlModalClose').addEventListener('click', closeEventEditor);
+        document.getElementById('tlCancelBtn').addEventListener('click', closeEventEditor);
+        document.getElementById('tlModalOverlay').addEventListener('click', closeEventEditor);
+
+        document.getElementById('tlSaveBtn').addEventListener('click', () => {
+            if (!currentEditEvent) return;
+            currentEditEvent.title = document.getElementById('tlTitle').value || '未命名事件';
+            currentEditEvent.time = document.getElementById('tlTime').value;
+            currentEditEvent.desc = document.getElementById('tlDesc').value;
+            render();
+            Bus.emit('project:auto-save');
+            closeEventEditor();
+        });
+
+        document.getElementById('tlDeleteBtn').addEventListener('click', () => {
+            if (!currentEditEvent || !currentEditLane) return;
+            if (confirm('确认删除此事件吗？')) {
+                removeEvent(currentEditLane.id, currentEditEvent.id);
+                closeEventEditor();
+            }
+        });
+    }
+
     function showEventEditor(lane, evt) {
-        // 简单 prompt 式编辑
-        const title = prompt('事件标题：', evt.title);
-        if (title === null) return;
-        evt.title = title;
-        const time = prompt('时间标注（如 1920-3-15 上午）：', evt.time);
-        if (time !== null) evt.time = time;
-        const desc = prompt('描述（可选）：', evt.desc);
-        if (desc !== null) evt.desc = desc;
-        render();
-        Bus.emit('project:auto-save');
+        currentEditLane = lane;
+        currentEditEvent = evt;
+        document.getElementById('tlTitle').value = evt.title || '';
+        document.getElementById('tlTime').value = evt.time || '';
+        document.getElementById('tlDesc').value = evt.desc || '';
+
+        document.getElementById('tlModalOverlay').classList.add('active');
+        document.getElementById('tlModal').classList.add('active');
+        setTimeout(() => document.getElementById('tlTitle').focus(), 50);
+    }
+
+    function closeEventEditor() {
+        document.getElementById('tlModalOverlay').classList.remove('active');
+        document.getElementById('tlModal').classList.remove('active');
+        currentEditEvent = null;
+        currentEditLane = null;
     }
 
     // ── 渲染 ─────────────────────────────────────────────────────

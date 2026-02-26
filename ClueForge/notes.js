@@ -226,7 +226,7 @@ const NotesModule = (() => {
 
     /** 简易 Markdown 回退 (marked.js 加载失败时使用) */
     function simpleMarkdown(text) {
-        return text
+        let html = text
             .replace(/&/g, '&amp;').replace(/</g, '&lt;')
             .replace(/^### (.+)/gm, '<h4>$1</h4>')
             .replace(/^## (.+)/gm, '<h3>$1</h3>')
@@ -236,6 +236,13 @@ const NotesModule = (() => {
             .replace(/`(.+?)`/g, '<code>$1</code>')
             .replace(/^- (.+)/gm, '<li>$1</li>')
             .replace(/\n/g, '<br>');
+
+        // Wrap adjacent <li> in <ul>
+        html = html.replace(/(<li>.*?<\/li>)(<br><li>.*?<\/li>)*/g, match => {
+            return '<ul>' + match.replace(/<br>/g, '') + '</ul>';
+        });
+
+        return html;
     }
 
     function renderLinks(note) {
