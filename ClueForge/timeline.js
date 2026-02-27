@@ -63,6 +63,11 @@ const TimelineModule = (() => {
         });
         Bus.on('project:collect:timeline', collectData);
         Bus.on('project:restore:timeline', restoreData);
+
+        // Initialize Top Pane Notes feature
+        if (typeof initTimelineNotes === 'function') {
+            initTimelineNotes();
+        }
     }
 
     function resizeCanvas() {
@@ -482,6 +487,192 @@ const TimelineModule = (() => {
         state.panX = data.panX || 0;
         state.panY = data.panY || 0;
         render();
+    }
+
+    /* ================================================================
+       Timeline Notes Extension
+    ================================================================ */
+
+    let tlNotesList, tlNotesTitleInput, tlNotesContentArea, tlNotesPreviewArea, tlNotesEmptyHint, tlEditorInner;
+    let tlEditMode = true;
+
+    function initTimelineNotes() {
+        tlNotesList = document.getElementById('tlNotesList');
+        tlNotesTitleInput = document.getElementById('tlNotesTitleInput');
+        tlNotesContentArea = document.getElementById('tlNotesContentArea');
+        tlNotesPreviewArea = document.getElementById('tlNotesPreviewArea');
+        tlNotesEmptyHint = document.getElementById('tlNotesEmptyHint');
+        tlEditorInner = document.getElementById('tlEditorInner');
+
+        document.getElementById('tlNotesNewBtn').addEventListener('click', () => {
+            if (window.NotesModule) window.NotesModule.createNote();
+        });
+        document.getElementById('tlNotesModeBtn').addEventListener('click', toggleTlEditMode);
+
+        tlNotesTitleInput.addEventListener('input', syncNoteToCore);
+        tlNotesContentArea.addEventListener('input', () => {
+            syncNoteToCore();
+            if (!tlEditMode) renderTlPreview();
+        });
+
+        // 监听核心 NotesModule 的变化
+        Bus.on('notes:changed', () => {
+            renderTlNotesList();
+            updateTlEditorFromCore();
+        });
+
+        // 初始化拖拽缩放
+        initResizer();
+    }
+
+    function renderTlNotesList() {
+        if (!window.NotesModule) return;
+        const data = window.NotesModule.getData();
+        const { notes, activeNoteId } = data;
+
+        if (!notes.length) {
+            tlNotesList.innerHTML = '<li class="tl-notes-item" style="color: #666; text-align: center; padding: 20px 0; cursor: default;">暂无笔记</li>';
+            return;
+        }
+
+        tlNotesList.innerHTML = notes.map(n => {
+            const active = n.id === activeNoteId ? 'active' : '';
+            const title = n.title || '未命名笔记';
+            const preview = n.content ? n.content.slice(0, 30).replace(/\n/g, ' ') : '';
+            return `
+            <li class="tl-notes-item ${active}" data-id="${n.id}">
+                <div class="tl-item-title">${escHtml(title)}</div>
+                <div class="tl-item-preview">${escHtml(preview)}</div>
+            </li>`;
+        }).join('');
+
+        tlNotesList.querySelectorAll('.tl-notes-item').forEach(li => {
+            li.addEventListener('click', () => {
+                if (li.dataset.id) window.NotesModule.selectNote(li.dataset.id);
+            });
+        });
+    }
+
+    function updateTlEditorFromCore() {
+        if (!window.NotesModule) return;
+        const data = window.NotesModule.getData();
+        const { notes, activeNoteId } = data;
+
+        if (!activeNoteId) {
+            tlNotesEmptyHint.style.display = 'flex';
+            tlEditorInner.style.display = 'none';
+            return;
+        }
+
+        const activeNote = notes.find(n => n.id === activeNoteId);
+        if (activeNote) {
+            tlNotesEmptyHint.style.display = 'none';
+            tlEditorInner.style.display = 'flex';
+
+            // Only update if not currently focused to prevent overriding user typing
+            if (document.activeElement !== tlNotesTitleInput) {
+                tlNotesTitleInput.value = activeNote.title || '';
+            }
+            if (document.activeElement !== tlNotesContentArea) {
+                tlNotesContentArea.value = activeNote.content || '';
+            }
+            if (!tlEditMode) renderTlPreview();
+        }
+    }
+
+    function syncNoteToCore() {
+        if (!window.NotesModule) return;
+        const data = window.NotesModule.getData();
+        if (data.activeNoteId) {
+            window.NotesModule.updateNote(data.activeNoteId, tlNotesTitleInput.value, tlNotesContentArea.value);
+            // Re-render local list without infinite loop
+            const activeLi = tlNotesList.querySelector('.tl-notes-item.active');
+            if (activeLi) {
+                activeLi.querySelector('.tl-item-title').textContent = tlNotesTitleInput.value || '未命名笔记';
+                activeLi.querySelector('.tl-item-preview').textContent = tlNotesContentArea.value.slice(0, 30).replace(/\n/g, ' ');
+            }
+        }
+    }
+
+    function toggleTlEditMode() {
+        tlEditMode = !tlEditMode;
+        const btn = document.getElementById('tlNotesModeBtn');
+        if (tlEditMode) {
+            tlNotesContentArea.style.display = '';
+            tlNotesPreviewArea.style.display = 'none';
+            btn.title = '切换预览';
+            btn.textContent = '👁';
+        } else {
+            renderTlPreview();
+            tlNotesContentArea.style.display = 'none';
+            tlNotesPreviewArea.style.display = '';
+            btn.title = '切换编辑';
+            btn.textContent = '✏️';
+        }
+    }
+
+    function renderTlPreview() {
+        if (window.NotesModule) {
+            tlNotesPreviewArea.innerHTML = window.NotesModule.parseMarkdown(tlNotesContentArea.value);
+        }
+    }
+
+    function initResizer() {
+        const resizer = document.getElementById('tlResizer');
+        const topPane = document.getElementById('tlTopPane');
+        const bottomPane = document.getElementById('tlBottomPane');
+        const container = document.getElementById('timelinePanel');
+
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            resizer.classList.add('dragging');
+            document.body.style.cursor = 'row-resize';
+
+            // 避免选择文本
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            // 计算高度
+            const containerRect = container.getBoundingClientRect();
+            // 假设头部工具栏等总共高度
+            const offsetY = e.clientY - containerRect.top;
+
+            // 设置最小高度限制
+            const minTop = 150;
+            const minBottom = 150;
+
+            if (offsetY > minTop && offsetY < containerRect.height - minBottom) {
+                const topHeightPercent = (offsetY / containerRect.height) * 100;
+                const bottomHeightPercent = 100 - topHeightPercent;
+
+                topPane.style.flex = 'none';
+                topPane.style.height = `${topHeightPercent}%`;
+                bottomPane.style.height = `${bottomHeightPercent}%`;
+
+                // 触发 canvas 尺寸更新
+                resizeCanvas();
+                render();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                resizer.classList.remove('dragging');
+                document.body.style.cursor = '';
+            }
+        });
+    }
+
+    function escHtml(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
     }
 
     return { init };

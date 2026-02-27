@@ -456,35 +456,77 @@
 
     <!-- ===== 时间线面板 ===== -->
     <div id="timelinePanel" class="tab-panel">
-        <header class="toolbar tl-toolbar">
-            <div class="toolbar-divider"></div>
-            <div class="tool-group">
-                <button class="tool-btn" id="tlAddLane" title="添加泳道">
-                    <span>＋ 泳道</span>
-                </button>
-                <button class="tool-btn" id="tlConnectBtn" title="连接事件">
-                    <span>🔗 连接</span>
-                </button>
-            </div>
-            <div class="toolbar-divider"></div>
-            <div class="tool-group">
-                <button class="tool-btn small" id="tlZoomIn" title="放大">🔍+</button>
-                <button class="tool-btn small" id="tlZoomOut" title="缩小">🔍−</button>
-                <button class="tool-btn small" id="tlResetView" title="重置视图">⌂</button>
-            </div>
-            <div class="toolbar-spacer"></div>
-            <div class="tool-group">
-                <span class="group-label" style="font-size:11px;opacity:0.5">双击添加事件 · 拖拽移动 · Shift+拖拽平移 · 滚轮缩放</span>
-            </div>
-        </header>
 
-        <div class="tl-container" id="timelineContainer">
-            <canvas id="timelineCanvas"></canvas>
+        <!-- 上半部分：KP笔记编辑器 -->
+        <div class="tl-top-pane" id="tlTopPane">
+            <!-- KP Notes 侧边栏/列表区 -->
+            <div class="tl-notes-sidebar">
+                <div class="tl-notes-header">
+                    <h3>📝 剧本笔记</h3>
+                    <button id="tlNotesNewBtn" class="tl-btn-icon" title="新建笔记">＋</button>
+                </div>
+                <div class="tl-notes-list-wrap">
+                    <ul id="tlNotesList" class="tl-notes-list"></ul>
+                </div>
+            </div>
+            <!-- KP Notes 编辑区 -->
+            <div class="tl-notes-editor" id="tlNotesEditorWrap">
+                <div class="tl-notes-empty-hint" id="tlNotesEmptyHint">
+                    <p>选择或新建一条笔记</p>
+                </div>
+                <div class="tl-editor-inner" id="tlEditorInner" style="display:none">
+                    <div class="tl-editor-header">
+                        <input type="text" id="tlNotesTitleInput" class="tl-notes-title" placeholder="笔记标题…">
+                        <button id="tlNotesModeBtn" class="tl-btn-icon" title="切换预览">👁</button>
+                    </div>
+                    <div class="tl-editor-body">
+                        <textarea id="tlNotesContentArea" class="tl-notes-textarea"
+                            placeholder="在此书写 Markdown 格式笔记..."></textarea>
+                        <div id="tlNotesPreviewArea" class="tl-notes-preview" style="display:none"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <footer class="statusbar">
-            <span id="tlStatusHint">双击泳道添加事件节点，拖拽调整时间位置</span>
-        </footer>
+        <!-- 调整大小的分割线 -->
+        <div class="tl-resizer" id="tlResizer">
+            <div class="tl-resizer-line"></div>
+        </div>
+
+        <!-- 下半部分：时间线泳道 -->
+        <div class="tl-bottom-pane" id="tlBottomPane">
+            <header class="toolbar tl-toolbar">
+                <div class="toolbar-divider"></div>
+                <div class="tool-group">
+                    <button class="tool-btn" id="tlAddLane" title="添加泳道">
+                        <span>＋ 泳道</span>
+                    </button>
+                    <button class="tool-btn" id="tlConnectBtn" title="连接事件">
+                        <span>🔗 连接</span>
+                    </button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="tool-group">
+                    <button class="tool-btn small" id="tlZoomIn" title="放大">🔍+</button>
+                    <button class="tool-btn small" id="tlZoomOut" title="缩小">🔍−</button>
+                    <button class="tool-btn small" id="tlResetView" title="重置视图">⌂</button>
+                </div>
+                <div class="toolbar-spacer"></div>
+                <div class="tool-group">
+                    <span class="group-label" style="font-size:11px;opacity:0.5">双击添加事件 · 拖拽移动 · Shift+拖拽平移 ·
+                        滚轮缩放</span>
+                </div>
+            </header>
+
+            <div class="tl-container" id="timelineContainer">
+                <canvas id="timelineCanvas"></canvas>
+            </div>
+
+            <footer class="statusbar">
+                <span id="tlStatusHint">提示：双击泳道添加事件节点，拖拽调整时间位置，连接事件梳理逻辑</span>
+            </footer>
+        </div>
+
     </div><!-- #timelinePanel -->
 
     <!-- ===== 模块化脚本（按依赖顺序加载） ===== -->

@@ -22,6 +22,9 @@ const NotesModule = (() => {
         bindEvents();
         Bus.on('project:collect:notes', collectData);
         Bus.on('project:restore:notes', restoreData);
+
+        // Listen to explicit API calls from other modules if needed via Bus, 
+        // though exposing JS API Methods from Module makes it simpler.
     }
 
     function buildToggleButton() {
@@ -79,16 +82,23 @@ const NotesModule = (() => {
     }
 
     function bindEvents() {
-        document.getElementById('notesNewBtn').addEventListener('click', createNote);
+        document.getElementById('notesNewBtn').addEventListener('click', () => {
+            apiCreateNote();
+        });
         document.getElementById('notesModeBtn').addEventListener('click', toggleEditMode);
         document.getElementById('notesCloseBtn').addEventListener('click', () => toggleSidebar(false));
         document.getElementById('notesAddLink').addEventListener('click', addLinkFromSelection);
 
         // 实时保存
-        titleInput.addEventListener('input', () => { saveCurrentNote(); renderList(); });
+        titleInput.addEventListener('input', () => {
+            saveCurrentNote();
+            renderList();
+            broadcastChange();
+        });
         contentTextarea.addEventListener('input', () => {
             saveCurrentNote();
             if (!editMode) renderPreview();
+            broadcastChange();
         });
 
         // 快捷键 Ctrl+Shift+N 切换侧边栏
@@ -107,6 +117,10 @@ const NotesModule = (() => {
         document.getElementById('notesSidebarToggle').classList.toggle('active', sidebarOpen);
     }
 
+    function broadcastChange() {
+        Bus.emit('notes:changed', { notes, activeNoteId });
+    }
+
     // ── CRUD ────────────────────────────────────────────────────
     function createNote() {
         const note = {
@@ -121,6 +135,7 @@ const NotesModule = (() => {
         selectNote(note.id);
         renderList();
         titleInput.focus();
+        return note.id;
     }
 
     function selectNote(id) {
@@ -200,14 +215,14 @@ const NotesModule = (() => {
         noteList.querySelectorAll('.notes-item').forEach(li => {
             li.addEventListener('click', e => {
                 if (e.target.closest('.notes-item-del')) return;
-                selectNote(li.dataset.id);
+                apiSelectNote(li.dataset.id);
             });
         });
         // 删除
         noteList.querySelectorAll('.notes-item-del').forEach(btn => {
             btn.addEventListener('click', e => {
                 e.stopPropagation();
-                deleteNote(btn.dataset.id);
+                apiDeleteNote(btn.dataset.id);
             });
         });
     }
@@ -257,6 +272,8 @@ const NotesModule = (() => {
             btn.addEventListener('click', () => {
                 note.links.splice(parseInt(btn.dataset.idx), 1);
                 renderLinks(note);
+                saveCurrentNote();
+                broadcastChange();
             });
         });
     }
@@ -322,6 +339,8 @@ const NotesModule = (() => {
 
         note.links.push({ type, label });
         renderLinks(note);
+        saveCurrentNote();
+        broadcastChange();
     }
 
     // ── 数据收集/恢复 ───────────────────────────────────────────
@@ -333,9 +352,66 @@ const NotesModule = (() => {
     function restoreData(data) {
         if (!data) return;
         notes = data.notes || [];
-        activeNoteId = data.activeNoteId;
+        const savedActiveId = data.activeNoteId;
+
+        // Ensure activeNoteId is null so selectNote doesn't save empty DOM into the restored note
+        activeNoteId = null;
+
         renderList();
-        if (activeNoteId) selectNote(activeNoteId);
+
+        if (savedActiveId && notes.find(n => n.id === savedActiveId)) {
+            selectNote(savedActiveId);
+        } else if (notes.length > 0) {
+            selectNote(notes[0].id);
+        }
+        broadcastChange();
+    }
+
+    // ── 外部 API ────────────────────────────────────────────────
+
+    function apiGetData() {
+        return { notes: [...notes], activeNoteId };
+    }
+
+    function apiCreateNote() {
+        const id = createNote();
+        broadcastChange();
+        return id;
+    }
+
+    function apiSelectNote(id) {
+        selectNote(id);
+        broadcastChange();
+    }
+
+    function apiUpdateNote(id, title, content) {
+        const note = notes.find(n => n.id === id);
+        if (note) {
+            if (title !== undefined) note.title = title;
+            if (content !== undefined) note.content = content;
+            note.updatedAt = Date.now();
+
+            // Sync local if modified externally
+            if (activeNoteId === id) {
+                titleInput.value = note.title;
+                contentTextarea.value = note.content;
+                renderPreview();
+            }
+            renderList();
+            Bus.emit('project:auto-save');
+            // We intentionally do not broadcastChange here to avoid circular loop if the call came from timeline.js binding
+            // Depending on architecture, could pass a source parameter, but passing silent flag works too
+        }
+    }
+
+    function apiUpdateNoteFromExternal(id, title, content) {
+        apiUpdateNote(id, title, content);
+        // Do not broadcast to avoid echo loop
+    }
+
+    function apiDeleteNote(id) {
+        deleteNote(id);
+        broadcastChange();
     }
 
     // ── 工具 ────────────────────────────────────────────────────
@@ -345,5 +421,20 @@ const NotesModule = (() => {
         return d.innerHTML;
     }
 
-    return { init };
+    const api = {
+        init,
+        // Public API
+        getData: apiGetData,
+        createNote: apiCreateNote,
+        selectNote: apiSelectNote,
+        updateNote: apiUpdateNoteFromExternal,
+        deleteNote: apiDeleteNote,
+        parseMarkdown: (text) => {
+            if (typeof marked !== 'undefined') return marked.parse(text || '*空白笔记*');
+            return simpleMarkdown(text || '*空白笔记*');
+        }
+    };
+
+    window.NotesModule = api;
+    return api;
 })();
