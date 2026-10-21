@@ -129,7 +129,7 @@ const ProjectModule = (() => {
             setTimeout(() => { if (!collected) resolve(); }, 50);
         });
         return {
-            version: 4,
+            version: 0.5,
             compressed: true,
             timestamp: new Date().toISOString(),
             map: mapData,
