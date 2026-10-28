@@ -22,6 +22,10 @@ if (!existsSync(legacyDir)) fail('找不到 ClueForge/ 目录');
 const viteBin = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js');
 if (!existsSync(viteBin)) fail('找不到 vite，请先运行 npm install');
 
+console.log('▸ 令牌门禁 …');
+const lint = spawnSync(process.execPath, [path.join(root, 'scripts', 'lint-tokens.mjs')], { cwd: root, stdio: 'inherit' });
+if (lint.status !== 0) fail('设计令牌泄漏，构建中止');
+
 console.log('▸ 清理 dist …');
 rmSync(dist, { recursive: true, force: true });
 
@@ -48,13 +52,14 @@ function copyDir(src, dst) {
 copyDir(legacyDir, dist);
 
 // 自检：入口文件必须存在
-const required = ['index.html', 'clueforge-studio.js', 'style.css', 'app.js', 'project.js', 'ui.js', 'map.js'];
+const required = ['index.html', 'clueforge-studio.js', 'tokens.css', 'style.css', 'app.js', 'project.js', 'ui.js', 'map.js'];
 const missing = required.filter((f) => !existsSync(path.join(dist, f)));
 if (missing.length) fail(`产物缺文件：${missing.join(', ')}`);
 
 const idx = readFileSafe(path.join(dist, 'index.html'));
 if (!idx.includes('clueforge-studio.js')) fail('dist/index.html 没有引用 clueforge-studio.js');
 if (idx.includes('cdn.jsdelivr.net')) fail('dist/index.html 仍存在 CDN 引用，离线会挂');
+if (!idx.includes('tokens.css')) fail('dist/index.html 没有先引入 tokens.css，令牌会失效');
 
 function readFileSafe(p) {
     try {
@@ -77,3 +82,5 @@ function dirSize(dir) {
 const mb = (dirSize(dist) / 1048576).toFixed(2);
 console.log(`\n✔ 构建完成 · dist/ · ${mb} MB`);
 console.log('  双击 dist/index.html 即可离线运行；或 npm run serve 起本地预览。');
+
+

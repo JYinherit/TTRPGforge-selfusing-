@@ -1,0 +1,92 @@
+/* ============================================================
+   ClueForge · 设计令牌（唯一真源）
+   ------------------------------------------------------------
+   规则：
+   1) 这里只放「值」，不放组件样式；组件样式在 style.css。
+   2) 组件一律引用 var(--cf-*)，不许写裸 px / 裸 hex。
+   3) 媒体查询里不能用 var(--cf-*)（CSS 限制），断点值写在注释里：860 / 980 / 1180。
+   4) 语义命名优先：--state-active 而不是 --cf-gold-1，未来换主题只换值不换名。
+   5) tokens.css 必须早于 style.css 引入，否则组件默认值会盖掉令牌。
+   ============================================================ */
+
+:root {
+    color-scheme: dark;
+
+    /* ---- 画布/表面 ---- */
+    --cf-canvas-bg: #12121c;
+    --cf-surface: rgba(255, 255, 255, 0.06);
+    --cf-surface-2: rgba(255, 255, 255, 0.03);
+    --cf-panel-bg: rgba(14, 14, 26, 0.55);
+    --cf-panel-bg-strong: rgba(14, 14, 26, 0.7);
+    --cf-card-bg: rgba(18, 18, 35, 0.6);
+    --cf-line: rgba(255, 255, 255, 0.1);
+    --cf-line-soft: rgba(255, 255, 255, 0.06);
+    --cf-stage-bg: rgba(10, 10, 18, 0.6);
+
+    /* ---- 文本 ---- */
+    --cf-text-strong: #e8e0d0;
+    --cf-dim: #8a8090;
+    --cf-dim-2: #7f7585;
+    --cf-dim-3: #5a5060;
+
+    /* ---- 语义色 ---- */
+    --state-active: #c9a84c;
+    --state-active-bg: rgba(201, 168, 76, 0.1);
+    --state-active-line: rgba(201, 168, 76, 0.55);
+    --state-active-soft: rgba(201, 168, 76, 0.08);
+    --state-error: #e05a5a;
+    --state-error-bg: linear-gradient(180deg, rgba(184, 50, 50, 0.32), rgba(184, 50, 50, 0.18));
+
+    /* ---- 间距（4 基）---- */
+    --cf-space-1: 4px;
+    --cf-space-2: 8px;
+    --cf-space-3: 12px;
+    --cf-space-4: 16px;
+    --cf-space-6: 24px;
+
+    /* ---- 字号（4 档）---- */
+    --cf-text-xs: 10px;
+    --cf-text-sm: 11px;
+    --cf-text-md: 12px;
+    --cf-text-lg: 16px;
+
+    /* ---- 控件尺寸 ---- */
+    --cf-h-ctl: 30px;
+    --cf-h-sm: 26px;
+    --cf-side-w: 224px;
+    --cf-inspector-w: 240px;
+
+    /* ---- 圆角 ---- */
+    --cf-r-sm: 4px;
+    --cf-r-md: 6px;
+    --cf-r-lg: 10px;
+}
+
+/* ---- 补充语义（组件专用，勿在 style.css 直接写值）---- */
+:root {
+    --cf-ink-on-active: #1a1406;
+    --cf-on-danger: #f0d9c8;
+    --cf-danger-line: rgba(184, 50, 50, 0.55);
+    --cf-danger-line-soft: rgba(184, 50, 50, 0.4);
+    --cf-danger-bg-hv: rgba(184, 50, 50, 0.42);
+    --state-active-wash: rgba(201, 168, 76, 0.05);
+    --state-active-hover-line: rgba(201, 168, 76, 0.35);
+    --cf-menu-bg: #16162a;
+    --cf-shadow: rgba(0, 0, 0, 0.55);
+    --cf-shadow-line: rgba(201, 168, 76, 0.18);
+}
+
+/* ---- 尺寸/阴影（唯一允许出现裸 px 的地方）---- */
+:root {
+    --cf-w-select: 92px;
+    --cf-w-key: 34px;
+    --cf-w-num: 38px;
+    --cf-w-zoom: 40px;
+    --cf-w-card: 380px;
+    --cf-w-side-narrow: 168px;
+    --cf-icon-md: 20px;
+    --cf-icon-lg: 26px;
+    --cf-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+:root { --cf-hairline: 1px; }

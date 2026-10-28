@@ -192,9 +192,14 @@ export class MapStudio {
     }
 
     fitZoom(): void {
-        const pad = 24;
-        const w = this.stage.clientWidth - pad;
-        const h = this.stage.clientHeight - pad;
+        // 舞台有 padding，若只按 24px 留白算，画布永远比可用区大一圈，底部常驻滚动条。
+        // 直接读 computed padding，左右/上下各留 12px 呼吸位。
+        const cs = getComputedStyle(this.stage);
+        const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+        const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+        const pad = 12;
+        const w = this.stage.clientWidth - padX - pad;
+        const h = this.stage.clientHeight - padY - pad;
         // 面板隐藏/布局未完成时 stage 可能只有几十像素，此时"适配"会算出 0 并被夹到最小缩放，
         // 表现为一打开工坊地图缩成一粒米。宁可不动，也不要记下错误的缩放。
         if (w < 40 || h < 40) return;
@@ -336,9 +341,19 @@ export class MapStudio {
         c.on('before:transform', () => this.pushHistory());
         c.on('object:modified', (e: FIEvent) => this.onObjectModified({ target: e.target as unknown as FabricWithCf }));
         c.on('object:moving', (e: FIEvent) => this.onObjectMoving({ target: e.target as unknown as FabricWithCf }));
-        c.on('selection:created', () => this.reportSelection());
-        c.on('selection:updated', () => this.reportSelection());
+        c.on('selection:created', () => { this.tidyControls(); this.reportSelection(); });
+        c.on('selection:updated', () => { this.tidyControls(); this.reportSelection(); });
         c.on('selection:cleared', () => this.reportSelection());
+    }
+
+    /** fabric v5 里 hasRotatingPoint 已失效，旋转柄拖不动只是噪声：统一收掉四角与旋转柄，只留四边中点。 */
+    private tidyControls(): void {
+        const objs = this.canvas.getActiveObjects() as unknown as Array<{ setControlsVisibility?: (v: Record<string, boolean>) => void }>;
+        for (const o of objs) {
+            if (typeof o.setControlsVisibility === 'function') {
+                o.setControlsVisibility({ mtr: false, tl: false, tr: false, bl: false, br: false });
+            }
+        }
     }
 
     private pointer(opt: { e: Event }): Pt {

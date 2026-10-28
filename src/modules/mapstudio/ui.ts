@@ -26,6 +26,11 @@ const TEMPLATE = `
         载入底图
         <input type="file" id="cfMsBg" accept="image/*" hidden />
       </label>
+      <span class="cf-ms-divider" aria-hidden="true"></span>
+      <label class="cf-ms-btn" title="导入地图 JSON（覆盖当前工坊地图，可撤销）">
+        导入 JSON
+        <input type="file" id="cfMsJsonIn" accept=".json,application/json" hidden />
+      </label>
       <button class="cf-ms-btn" id="cfMsPng" title="导出当前地图为 PNG">导出 PNG</button>
       <select class="cf-ms-select" id="cfMsPngOpt" title="导出规格：倍率与是否带格线">
         <option value="1-0">1x</option>
@@ -33,11 +38,7 @@ const TEMPLATE = `
         <option value="2-0">2x</option>
         <option value="2-1">2x+格线</option>
       </select>
-      <button class="cf-ms-btn primary" id="cfMsJson" title="导出地图 JSON（可被工程文件引用）">导出 JSON</button>
-      <label class="cf-ms-btn" title="导入地图 JSON（覆盖当前工坊地图，可撤销）">
-        导入 JSON
-        <input type="file" id="cfMsJsonIn" accept=".json,application/json" hidden />
-      </label>
+      <button class="cf-ms-btn gold" id="cfMsJson" title="导出地图 JSON（可被工程文件引用）">导出 JSON</button>
     </div>
   </header>
 
@@ -50,7 +51,7 @@ const TEMPLATE = `
           <button class="cf-ms-tool" data-tool="room"><b>R</b>房间</button>
           <button class="cf-ms-tool" data-tool="wall"><b>W</b>墙体</button>
           <button class="cf-ms-tool" data-tool="door"><b>D</b>门</button>
-          <button class="cf-ms-tool" data-tool="erase"><b>X</b>擦除</button>
+          <button class="cf-ms-tool full" data-tool="erase"><b>X</b>擦除</button>
         </div>
       </div>
 
@@ -88,6 +89,7 @@ const TEMPLATE = `
         <div class="cf-ms-row">
           <button class="cf-ms-btn mini" id="cfMsUndo">撤销</button>
           <button class="cf-ms-btn mini" id="cfMsRedo">重做</button>
+          <span class="cf-ms-divider" aria-hidden="true"></span>
           <button class="cf-ms-btn mini danger" id="cfMsDelete">删除</button>
         </div>
       </div>
@@ -98,8 +100,8 @@ const TEMPLATE = `
         <div class="cf-ms-row"><span class="cf-ms-k">房间数</span><input class="cf-ms-input" id="cfMsRoomCount" type="number" min="1" max="12" value="7" /></div>
         <div class="cf-ms-row">
           <span class="cf-ms-k">列×行</span>
-          <input class="cf-ms-input" id="cfMsCols" type="number" min="6" max="60" value="26" />
-          <input class="cf-ms-input" id="cfMsRows" type="number" min="6" max="60" value="18" />
+          <input class="cf-ms-input" id="cfMsCols" type="number" min="6" max="60" value="26" aria-label="列数" placeholder="列" />
+          <input class="cf-ms-input" id="cfMsRows" type="number" min="6" max="60" value="18" aria-label="行数" placeholder="行" />
         </div>
         <label class="cf-ms-check"><input type="checkbox" id="cfMsGenDoors" checked /> 自动开门</label>
         <button class="cf-ms-btn primary block" id="cfMsGenerate">生成楼层</button>
@@ -114,9 +116,11 @@ const TEMPLATE = `
           <canvas id="cfStCanvas"></canvas>
         </div>
         <div class="cf-ms-empty" id="cfMsEmpty">
-          <div>
+          <div class="cf-ms-empty-card">
+            <div class="cf-ms-empty-icon" aria-hidden="true">▦</div>
             <h3>空白地图</h3>
-            <p>用「房间 / 墙体」自己画，或者点左侧「生成楼层」。</p>
+            <p>用「房间 / 墙体」自己画，或直接生成一层。</p>
+            <button class="cf-ms-btn primary" id="cfMsEmptyGen">生成楼层</button>
           </div>
         </div>
       </div>
@@ -129,7 +133,13 @@ const TEMPLATE = `
     <aside class="cf-ms-inspector">
       <div class="cf-ms-label">选中对象</div>
       <div id="cfMsInspector">
-        <p class="cf-ms-hint">点选房间可改名并查看尺寸；墙与门以文档数据为准。</p>
+        <div class="cf-ms-ins-empty">
+          <div class="cf-ms-ins-empty-icon" aria-hidden="true">◎</div>
+          <b>未选中对象</b>
+          <span>点房间：改名、看尺寸</span>
+          <span>点墙体：看折点与总长</span>
+          <span>点门/窗：看类型与朝向</span>
+        </div>
       </div>
     </aside>
   </div>
@@ -246,7 +256,7 @@ export function mountMapStudio(): MapStudioPanelApi {
     el<HTMLButtonElement>('cfMsDelete').addEventListener('click', () => studio.deleteSelected());
 
     /* ---------- 自动生成 ---------- */
-    el<HTMLButtonElement>('cfMsGenerate').addEventListener('click', () => {
+    function generateNow(): void {
         const seed = el<HTMLInputElement>('cfMsSeed').value.trim() || 'ashcroft';
         const roomCount = Number(el<HTMLInputElement>('cfMsRoomCount').value) || 7;
         const cols = Number(el<HTMLInputElement>('cfMsCols').value) || 26;
@@ -257,7 +267,10 @@ export function mountMapStudio(): MapStudioPanelApi {
         studio.fitZoom();
         fitted = true;
         syncCellUi();
-    });
+    }
+    el<HTMLButtonElement>('cfMsGenerate').addEventListener('click', generateNow);
+    // 空态里的入口与左栏按钮等价：第一次进来就有唯一动作
+    el<HTMLButtonElement>('cfMsEmptyGen').addEventListener('click', generateNow);
 
     /* ---------- 新建 / 导出 / 底图 ---------- */
     el<HTMLButtonElement>('cfMsNew').addEventListener('click', () => {
@@ -323,7 +336,15 @@ export function mountMapStudio(): MapStudioPanelApi {
     /* ---------- 检查器 ---------- */
     function renderInspector(meta: RoomMeta | WallMeta | DoorMeta | null): void {
         if (!meta) {
-            inspectorEl.innerHTML = '<p class="cf-ms-hint">点选房间可改名并查看尺寸；墙与门以文档数据为准。</p>';
+            inspectorEl.innerHTML = [
+                '<div class="cf-ms-ins-empty">',
+                '<div class="cf-ms-ins-empty-icon" aria-hidden="true">◎</div>',
+                '<b>未选中对象</b>',
+                '<span>点房间：改名、看尺寸</span>',
+                '<span>点墙体：看折点与总长</span>',
+                '<span>点门/窗：看类型与朝向</span>',
+                '</div>'
+            ].join('');
             return;
         }
         const g = studio.doc.grid;
@@ -335,9 +356,8 @@ export function mountMapStudio(): MapStudioPanelApi {
                 '<div class="cf-ms-insp">',
                 '<div class="cf-ms-ins-type">房间</div>',
                 `<input class="cf-ms-input wide" id="cfMsRoomName" value="${escapeHtml(meta.name)}" />`,
-                `<div class="cf-ms-kv"><span>尺寸</span><b>${Math.round(meta.width)} × ${Math.round(meta.height)} px</b></div>`,
-                `<div class="cf-ms-kv"><span>约</span><b>${mw} × ${mh} m</b></div>`,
-                `<div class="cf-ms-kv"><span>网格</span><b>1 格 = ${mpc} m / ${g.cell}px</b></div>`,
+                `<div class="cf-ms-kv"><span>尺寸(px)</span><b>${Math.round(meta.width)} × ${Math.round(meta.height)} px</b></div>`,
+                `<div class="cf-ms-kv"><span>约合(m)</span><b>${mw} × ${mh} m</b></div>`,
                 '</div>'
             ].join('');
             const nameInput = document.getElementById('cfMsRoomName') as HTMLInputElement | null;
@@ -514,3 +534,4 @@ function downloadDataUrl(href: string, filename: string): void {
     a.click();
     a.remove();
 }
+

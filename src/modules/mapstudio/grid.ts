@@ -61,7 +61,7 @@ export function paintGrid(
         const i = startCol + n;
         const x = grid.originX * zoom + i * cell;
         if (x > width) break;
-        ctx.strokeStyle = i % 5 === 0 ? 'rgba(201,168,76,0.18)' : 'rgba(201,168,76,0.08)';
+        ctx.strokeStyle = i % 5 === 0 ? 'rgba(201,168,76,0.24)' : 'rgba(201,168,76,0.10)';
         ctx.beginPath();
         ctx.moveTo(Math.round(x) + 0.5, 0);
         ctx.lineTo(Math.round(x) + 0.5, height);
@@ -73,7 +73,7 @@ export function paintGrid(
         const j = startRow + n;
         const y = grid.originY * zoom + j * cell;
         if (y > height) break;
-        ctx.strokeStyle = j % 5 === 0 ? 'rgba(201,168,76,0.18)' : 'rgba(201,168,76,0.08)';
+        ctx.strokeStyle = j % 5 === 0 ? 'rgba(201,168,76,0.24)' : 'rgba(201,168,76,0.10)';
         ctx.beginPath();
         ctx.moveTo(0, Math.round(y) + 0.5);
         ctx.lineTo(width, Math.round(y) + 0.5);
