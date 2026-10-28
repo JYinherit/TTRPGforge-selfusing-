@@ -26,7 +26,13 @@ const TEMPLATE = `
         载入底图
         <input type="file" id="cfMsBg" accept="image/*" hidden />
       </label>
-      <button class="cf-ms-btn" id="cfMsPng" title="导出当前地图为 PNG（含格线）">导出 PNG</button>
+      <button class="cf-ms-btn" id="cfMsPng" title="导出当前地图为 PNG">导出 PNG</button>
+      <select class="cf-ms-select" id="cfMsPngOpt" title="导出规格：倍率与是否带格线">
+        <option value="1-0">1x</option>
+        <option value="1-1">1x+格线</option>
+        <option value="2-0">2x</option>
+        <option value="2-1">2x+格线</option>
+      </select>
       <button class="cf-ms-btn primary" id="cfMsJson" title="导出地图 JSON（可被工程文件引用）">导出 JSON</button>
       <label class="cf-ms-btn" title="导入地图 JSON（覆盖当前工坊地图，可撤销）">
         导入 JSON
@@ -264,8 +270,10 @@ export function mountMapStudio(): MapStudioPanelApi {
     });
 
     el<HTMLButtonElement>('cfMsPng').addEventListener('click', async () => {
-        const dataUrl = await studio.exportPNG();
-        downloadDataUrl(dataUrl, `map-${stamp()}.png`);
+        const opt = el<HTMLSelectElement>('cfMsPngOpt').value || '1-0';
+        const [s, g] = opt.split('-');
+        const dataUrl = await studio.exportPNG({ scale: Number(s) || 1, grid: g === '1' });
+        downloadDataUrl(dataUrl, `map-${stamp()}${s === '2' ? '@2x' : ''}${g === '1' ? '-grid' : ''}.png`);
     });
 
     el<HTMLButtonElement>('cfMsJson').addEventListener('click', () => {

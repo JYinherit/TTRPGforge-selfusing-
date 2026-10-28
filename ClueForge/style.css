@@ -2355,6 +2355,22 @@ textarea.props-input {
 .cf-ms-input:focus { border-color: rgba(201, 168, 76, 0.5); }
 .cf-ms-input.wide { width: 100%; flex: none; height: 30px; }
 
+.cf-ms-select {
+    width: 92px;
+    height: 30px;
+    padding: 0 6px;
+    font-size: 12px;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+}
+.cf-ms-select:focus { border-color: rgba(201, 168, 76, 0.5); }
+.cf-ms-select option { background: #16162a; color: var(--text-primary); }
+
 .cf-ms-range { flex: 1; accent-color: var(--gold); }
 .cf-ms-num { font-size: 11px; color: var(--gold); min-width: 38px; text-align: right; }
 .cf-ms-zoom { font-size: 11px; color: var(--text-muted); min-width: 40px; text-align: center; }

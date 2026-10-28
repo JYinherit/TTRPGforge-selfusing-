@@ -786,7 +786,7 @@ export class MapStudio {
         return docToJSON(this.collect());
     }
 
-    private renderFlat(): string {
+    private renderFlat(scale = 1): string {
         const vpt = (this.canvas.viewportTransform || [1, 0, 0, 1, 0, 0]).slice() as number[];
         const w = this.canvas.getWidth();
         const h = this.canvas.getHeight();
@@ -794,26 +794,32 @@ export class MapStudio {
         this.canvas.setDimensions({ width, height });
         this.canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
         this.canvas.renderAll();
-        const url = this.canvas.toDataURL({ format: 'png', multiplier: 1 });
+        const url = this.canvas.toDataURL({ format: 'png', multiplier: scale });
         this.canvas.setDimensions({ width: w, height: h });
         this.canvas.setViewportTransform(vpt);
         this.canvas.requestRenderAll();
         return url;
     }
 
-    async exportPNG(): Promise<string> {
+    /**
+     * 导出 PNG。默认沿用当前格线显示状态与 1x 尺寸；
+     * grid 可强制含/不含格线，scale 支持 1–4 倍（2x 适合印在纸质卡上）。
+     */
+    async exportPNG(opts: { grid?: boolean; scale?: number } = {}): Promise<string> {
+        const scale = Math.max(1, Math.min(4, Math.round(opts.scale ?? 1)));
+        const withGrid = opts.grid ?? this.showGrid;
         const { width, height } = this.doc.size;
         const out = document.createElement('canvas');
-        out.width = width;
-        out.height = height;
+        out.width = width * scale;
+        out.height = height * scale;
         const ctx = out.getContext('2d');
-        if (!ctx) return this.renderFlat();
+        if (!ctx) return this.renderFlat(scale);
         ctx.fillStyle = '#12121c';
-        ctx.fillRect(0, 0, width, height);
-        if (this.showGrid) paintGrid(ctx, width, height, this.doc.grid, 1);
-        const flat = this.renderFlat();
+        ctx.fillRect(0, 0, out.width, out.height);
+        if (withGrid) paintGrid(ctx, out.width, out.height, this.doc.grid, scale);
+        const flat = this.renderFlat(scale);
         const img = await loadImage(flat);
-        ctx.drawImage(img, 0, 0, width, height);
+        ctx.drawImage(img, 0, 0, out.width, out.height);
         return out.toDataURL('image/png');
     }
 }
