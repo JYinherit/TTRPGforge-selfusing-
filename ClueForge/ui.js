@@ -9,6 +9,7 @@ const UIModule = (() => {
     function init() {
         // 标签切换按钮
         document.getElementById('tabMap').addEventListener('click', () => switchTab('map'));
+        document.getElementById('tabMapStudio').addEventListener('click', () => switchTab('mapstudio'));
         document.getElementById('tabClue').addEventListener('click', () => switchTab('clue'));
         document.getElementById('tabProps').addEventListener('click', () => switchTab('props'));
         document.getElementById('tabTimeline').addEventListener('click', () => switchTab('timeline'));
@@ -20,15 +21,22 @@ const UIModule = (() => {
     function switchTab(tab) {
         // 面板切换
         document.getElementById('mapPanel').classList.toggle('active', tab === 'map');
+        document.getElementById('mapStudioPanel').classList.toggle('active', tab === 'mapstudio');
         document.getElementById('cluePanel').classList.toggle('active', tab === 'clue');
         document.getElementById('propsPanel').classList.toggle('active', tab === 'props');
         document.getElementById('timelinePanel').classList.toggle('active', tab === 'timeline');
 
         // 按钮高亮
         document.getElementById('tabMap').classList.toggle('active', tab === 'map');
+        document.getElementById('tabMapStudio').classList.toggle('active', tab === 'mapstudio');
         document.getElementById('tabClue').classList.toggle('active', tab === 'clue');
         document.getElementById('tabProps').classList.toggle('active', tab === 'props');
         document.getElementById('tabTimeline').classList.toggle('active', tab === 'timeline');
+
+        // 通知地图工坊（首次显示时校正缩放）
+        if (window.ClueForgeBridge && typeof window.ClueForgeBridge.onTabShown === 'function') {
+            window.ClueForgeBridge.onTabShown(tab);
+        }
 
         // 发布事件
         Bus.emit('tab:switched', { tab });

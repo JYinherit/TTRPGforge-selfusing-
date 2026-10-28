@@ -7,9 +7,7 @@
     <title>ClueForge · TRPG 线索制作工坊</title>
     <meta name="description" content="面向跑团KP/主持人的沉浸式图片编辑与批注工具" />
     <link rel="stylesheet" href="style.css" />
-    <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- fabric / roughjs / marked 已由本地打包产物 clueforge-studio.js 注入，不再依赖 CDN -->
 </head>
 
 <body>
@@ -22,6 +20,9 @@
         </div>
         <button class="tab-btn active" id="tabMap">
             🗺 地图批注
+        </button>
+        <button class="tab-btn" id="tabMapStudio">
+            🏰 地图工坊
         </button>
         <button class="tab-btn" id="tabClue">
             🧵 线索墙
@@ -282,6 +283,11 @@
 
     </div><!-- #mapPanel -->
 
+    <!-- ===== 地图工坊面板（房间/墙体/门洞/尺寸元数据/程序化生成） ===== -->
+    <div id="mapStudioPanel" class="tab-panel">
+        <!-- 内部 UI 由 TypeScript 模块 src/modules/mapstudio/ui.ts 挂载 -->
+    </div>
+
     <!-- ===== 线索墙面板 ===== -->
     <div id="cluePanel" class="tab-panel">
 
@@ -530,6 +536,8 @@
     </div><!-- #timelinePanel -->
 
     <!-- ===== 模块化脚本（按依赖顺序加载） ===== -->
+    <!-- ① 本地打包产物：fabric/roughjs/marked + 地图工坊；必须先于老模块执行，负责回填全局依赖 -->
+    <script src="clueforge-studio.js"></script>
     <script src="eventbus.js"></script>
     <script src="ui.js"></script>
     <script src="map-themes.js"></script>

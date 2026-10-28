@@ -2179,3 +2179,317 @@ textarea.props-input {
     left: 0;
     z-index: 1;
 }
+/* ======================================================
+   MAP STUDIO · 地图工坊（房间 / 墙体 / 门洞 / 程序化楼层）
+   ====================================================== */
+#mapStudioPanel { overflow: hidden; }
+
+#mapStudioPanel .cf-ms {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    min-height: 0;
+    background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(201, 168, 76, 0.05), transparent 60%),
+        var(--bg-deep);
+}
+
+/* ---------- 顶栏 ---------- */
+.cf-ms-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(20, 20, 36, 0.96), rgba(13, 13, 26, 0.9));
+    flex: none;
+}
+
+.cf-ms-title { display: flex; align-items: center; gap: 12px; }
+
+.cf-ms-badge {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    border: 1px solid rgba(201, 168, 76, 0.45);
+    background: rgba(201, 168, 76, 0.08);
+    padding: 5px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.cf-ms-title h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-primary);
+}
+
+.cf-ms-title p {
+    margin: 3px 0 0;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+}
+
+.cf-ms-head-actions { display: flex; align-items: center; gap: 8px; }
+
+.cf-ms-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 14px;
+    font-size: 12px;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.cf-ms-btn:hover { background: var(--bg-glass-hv); border-color: rgba(201, 168, 76, 0.35); }
+.cf-ms-btn:disabled { opacity: 0.35; cursor: default; }
+.cf-ms-btn.primary {
+    background: linear-gradient(180deg, rgba(184, 50, 50, 0.32), rgba(184, 50, 50, 0.18));
+    border-color: rgba(184, 50, 50, 0.55);
+    color: #f0d9c8;
+}
+.cf-ms-btn.primary:hover { background: rgba(184, 50, 50, 0.42); }
+.cf-ms-btn.danger { color: #e6a9a9; border-color: rgba(184, 50, 50, 0.4); }
+.cf-ms-btn.mini { height: 26px; padding: 0 9px; font-size: 11px; }
+.cf-ms-btn.block { width: 100%; margin-top: 8px; }
+
+/* ---------- 三栏 ---------- */
+.cf-ms-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.cf-ms-side {
+    width: 224px;
+    flex: none;
+    padding: 14px 12px;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    background: rgba(14, 14, 26, 0.55);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.cf-ms-group { display: flex; flex-direction: column; gap: 8px; }
+.cf-ms-group.grow { flex: 1; }
+
+.cf-ms-label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.cf-ms-toolgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.cf-ms-toolgrid.cols3 { grid-template-columns: repeat(3, 1fr); }
+
+.cf-ms-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 30px;
+    font-size: 12px;
+    font-family: inherit;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.cf-ms-tool b {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-dim);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    padding: 1px 4px;
+}
+
+.cf-ms-tool.small b { display: none; }
+.cf-ms-tool:hover { background: var(--bg-glass-hv); color: var(--text-primary); }
+.cf-ms-tool.active {
+    color: var(--gold);
+    border-color: rgba(201, 168, 76, 0.55);
+    background: rgba(201, 168, 76, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(201, 168, 76, 0.15);
+}
+.cf-ms-tool.active b { color: var(--gold); border-color: rgba(201, 168, 76, 0.4); }
+
+.cf-ms-row { display: flex; align-items: center; gap: 6px; }
+
+.cf-ms-k { font-size: 11px; color: var(--text-dim); min-width: 34px; }
+
+.cf-ms-input {
+    flex: 1;
+    min-width: 0;
+    height: 26px;
+    padding: 0 8px;
+    font-size: 12px;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    outline: none;
+}
+.cf-ms-input:focus { border-color: rgba(201, 168, 76, 0.5); }
+.cf-ms-input.wide { width: 100%; flex: none; height: 30px; }
+
+.cf-ms-range { flex: 1; accent-color: var(--gold); }
+.cf-ms-num { font-size: 11px; color: var(--gold); min-width: 38px; text-align: right; }
+.cf-ms-zoom { font-size: 11px; color: var(--text-muted); min-width: 40px; text-align: center; }
+
+.cf-ms-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.cf-ms-check input { accent-color: var(--gold); }
+
+.cf-ms-hint {
+    margin: 0;
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: var(--text-dim);
+}
+
+/* ---------- 画布 ---------- */
+.cf-ms-center {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+}
+
+.cf-ms-stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 22px;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+.cf-ms-canvas-wrap {
+    position: relative;
+    flex: none;
+    margin: auto;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(201, 168, 76, 0.18);
+    background: #12121c;
+}
+
+.cf-ms-canvas-wrap .canvas-container { position: relative !important; }
+
+.cf-ms-grid {
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.cf-ms-canvas-wrap .upper-canvas { z-index: 2; }
+
+.cf-ms-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none;
+    color: var(--text-dim);
+    z-index: 3;
+}
+.cf-ms-empty h3 { margin: 0 0 6px; font-size: 14px; color: var(--text-muted); font-weight: 500; }
+.cf-ms-empty p { margin: 0; font-size: 11.5px; }
+
+.cf-ms-status {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    height: 30px;
+    padding: 0 16px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    background: rgba(14, 14, 26, 0.7);
+}
+.cf-ms-status .cf-ms-hint { font-size: 11px; }
+
+/* ---------- 检查器 ---------- */
+.cf-ms-inspector {
+    width: 246px;
+    flex: none;
+    padding: 14px 14px;
+    overflow-y: auto;
+    border-left: 1px solid var(--border);
+    background: rgba(14, 14, 26, 0.55);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cf-ms-insp { display: flex; flex-direction: column; gap: 10px; }
+
+.cf-ms-ins-type {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--gold);
+    text-transform: uppercase;
+    border-left: 2px solid var(--accent);
+    padding-left: 7px;
+}
+
+.cf-ms-kv {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+    padding-bottom: 5px;
+}
+.cf-ms-kv b { font-weight: 500; color: var(--text-primary); }
+
+@media (max-width: 1180px) {
+    .cf-ms-inspector { display: none; }
+}
+
+@media (max-width: 860px) {
+    .cf-ms-side { width: 168px; }
+    .cf-ms-title p { display: none; }
+}

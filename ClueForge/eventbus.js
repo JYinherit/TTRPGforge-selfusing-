@@ -43,3 +43,6 @@ const Bus = (() => {
 
     return { on, off, emit, once, debug };
 })();
+
+/* 暴露给模块化新增代码（地图工坊自动存档等），老代码的全局 const 行为不变 */
+window.Bus = Bus;

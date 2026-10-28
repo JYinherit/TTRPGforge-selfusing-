@@ -1,0 +1,25 @@
+{
+  "name": "clueforge",
+  "version": "0.6.0",
+  "private": true,
+  "type": "module",
+  "description": "ClueForge · TRPG 线索与地图制作工坊",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "serve": "node scripts/serve.mjs"
+  },
+  "dependencies": {
+    "fabric": "5.3.0",
+    "marked": "12.0.2",
+    "roughjs": "4.6.6"
+  },
+  "devDependencies": {
+    "@types/fabric": "^5.3.11",
+    "typescript": "5.6.3",
+    "vite": "5.4.11"
+  }
+}

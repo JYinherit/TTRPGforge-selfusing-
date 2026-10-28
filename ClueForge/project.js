@@ -6,6 +6,9 @@
 
 const ProjectModule = (() => {
 
+    // 最近一次从存档读入的地图工坊原始数据；编辑器不可用时原样回写，避免下一次保存把它抹掉
+    let lastMapStudioRaw = undefined;
+
     function init() {
         // 按钮绑定 (仅保留拖入和载入 input)
         const loadInput = document.getElementById('loadProjectInput');
@@ -128,7 +131,7 @@ const ProjectModule = (() => {
             Bus.emit('project:collect:timeline', d => { tlData = d; collected = true; resolve(); });
             setTimeout(() => { if (!collected) resolve(); }, 50);
         });
-        return {
+        const project = {
             version: 0.5,
             compressed: true,
             timestamp: new Date().toISOString(),
@@ -137,6 +140,43 @@ const ProjectModule = (() => {
             notes: notesData,
             timeline: tlData,
         };
+        // 地图工坊：bridge 不可用时沿用最近一次成功读入的原始数据（loadDoc 若不接受会保留原值），
+        // 绝不能写 null——那等于把"这次没取到"存成"这里本来就没有"，下次恢复还会被当成损坏数据。
+        if (window.ClueForgeBridge && typeof window.ClueForgeBridge.getDoc === 'function') {
+            const doc = window.ClueForgeBridge.getDoc();
+            if (doc) project.mapStudio = doc;
+            else if (lastMapStudioRaw !== undefined) project.mapStudio = lastMapStudioRaw;
+        } else if (lastMapStudioRaw !== undefined) {
+            project.mapStudio = lastMapStudioRaw;
+        }
+        return project;
+    }
+
+    function notifyMapStudio(msg) {
+        console.warn('[project] 地图工坊：' + msg);
+        if (window.Bus && typeof Bus.emit === 'function') {
+            Bus.emit('status:update', { target: 'map', field: 'hint', text: '提示：地图工坊 ' + msg });
+        }
+        alert('地图工坊：' + msg);
+    }
+
+    function restoreMapStudio(project) {
+        // 没有这个字段 = 老存档，静默跳过；字段存在但读不出来 = 要让人看见
+        if (!project || project.mapStudio === undefined) return;
+        // 记住原始数据：编辑器没起来时，下一次自动保存要原样回写，不能丢
+        lastMapStudioRaw = project.mapStudio;
+        const bridge = window.ClueForgeBridge;
+        if (!bridge || typeof bridge.loadDoc !== 'function') {
+            notifyMapStudio('编辑器未就绪，本次未恢复工坊地图（存档内容未改动）');
+            return;
+        }
+        let ok = false;
+        try {
+            ok = bridge.loadDoc(project.mapStudio) !== false;
+        } catch (e) {
+            console.warn('地图工坊数据恢复失败（已忽略，不影响其它模块）', e);
+        }
+        if (!ok) notifyMapStudio('存档里的地图数据无效，已跳过（当前画布与存档保持不变）');
     }
 
     async function loadCacheOnStartup() {
@@ -149,6 +189,7 @@ const ProjectModule = (() => {
                 if (project.clueBoard) Bus.emit('project:restore:cb', project.clueBoard);
                 if (project.notes) Bus.emit('project:restore:notes', project.notes);
                 if (project.timeline) Bus.emit('project:restore:timeline', project.timeline);
+                restoreMapStudio(project);
                 if (statusEl) statusEl.textContent = '已恢复缓存';
             } else {
                 if (statusEl) statusEl.textContent = '无缓存记录';
@@ -227,6 +268,14 @@ const ProjectModule = (() => {
             if (project.clueBoard) Bus.emit('project:restore:cb', project.clueBoard);
             if (project.notes) Bus.emit('project:restore:notes', project.notes);
             if (project.timeline) Bus.emit('project:restore:timeline', project.timeline);
+            // 换项目先清掉上一张图：老项目没有 mapStudio 字段时不能把旧地图带进来，
+            // 否则下一次自动保存会给新项目附上一张不属于它的图
+            lastMapStudioRaw = undefined;
+            if (project.mapStudio === undefined) {
+                const bridge = window.ClueForgeBridge;
+                if (bridge && typeof bridge.clearDoc === 'function') bridge.clearDoc();
+            }
+            restoreMapStudio(project);
 
             const sizeMB = (file.size / 1048576).toFixed(2);
             Bus.emit('status:update', { target: 'map', field: 'hint', text: `提示：项目已加载（${sizeMB} MB${isGzip ? '，已解压' : ''}）` });
