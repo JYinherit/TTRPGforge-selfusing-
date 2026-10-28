@@ -172,8 +172,11 @@ export function makeCorridor(meta: CorridorMeta): FabricWithCf {
         stroke: 'rgba(201,168,76,0.40)',
         strokeWidth: 1,
         strokeDashArray: [6, 6],
-        selectable: false,
-        evented: false
+        // 走廊也是地图元素：能选中才能改、能删（否则只能整图重来）
+        selectable: true,
+        evented: true,
+        lockRotation: true,
+        hoverCursor: 'move'
     }) as FabricWithCf;
     rect.cf = meta;
     return rect;

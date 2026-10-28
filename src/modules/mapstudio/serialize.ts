@@ -74,7 +74,14 @@ export function collectDoc(canvas: fabric.Canvas, base: MapDoc): MapDoc {
             return;
         }
         if (meta.type === 'corridor') {
-            next.corridors.push(clone(meta) as CorridorMeta);
+            const geo = o as fabric.Rect;
+            next.corridors.push({
+                ...clone(meta),
+                left: round1(geo.left || 0),
+                top: round1(geo.top || 0),
+                width: round1((geo.width || 0) * (geo.scaleX || 1)),
+                height: round1((geo.height || 0) * (geo.scaleY || 1))
+            } as CorridorMeta);
         }
     });
 
@@ -140,6 +147,8 @@ export function normalizeDoc(raw: unknown): MapDoc | null {
             const g = rm;
             if (typeof g.left !== 'number' || typeof g.top !== 'number' || typeof g.width !== 'number' || typeof g.height !== 'number') return;
             base.rooms.push({
+                // 先展开原字段：tags / level / notes 这类扩展元数据不能被读档抹掉
+                ...g,
                 id: g.id || `room_${base.rooms.length}`,
                 type: 'room',
                 name: typeof g.name === 'string' ? g.name : `房间 ${base.rooms.length + 1}`,
@@ -159,6 +168,7 @@ export function normalizeDoc(raw: unknown): MapDoc | null {
                 .slice(0, DOC_LIMITS.wallPoints);
             if (pts.length < 2) return;
             base.walls.push({
+                ...w,
                 id: w.id || `wall_${base.walls.length}`,
                 type: 'wall',
                 unit: w.unit === 'ft' || w.unit === 'px' ? w.unit : 'm',
@@ -170,6 +180,7 @@ export function normalizeDoc(raw: unknown): MapDoc | null {
         r.doors.slice(0, DOC_LIMITS.items).forEach((d) => {
             if (!d || typeof d.x !== 'number' || typeof d.y !== 'number') return;
             base.doors.push({
+                ...d,
                 id: d.id || `door_${base.doors.length}`,
                 type: 'door',
                 kind: d.kind === 'window' || d.kind === 'secret' ? d.kind : 'door',
@@ -184,6 +195,7 @@ export function normalizeDoc(raw: unknown): MapDoc | null {
         r.corridors.slice(0, DOC_LIMITS.items).forEach((c) => {
             if (!c || typeof c.left !== 'number' || typeof c.top !== 'number') return;
             base.corridors.push({
+                ...c,
                 id: c.id || `corr_${base.corridors.length}`,
                 type: 'corridor',
                 left: c.left,
@@ -224,3 +236,4 @@ export function validateMapDoc(raw: unknown): DocValidation {
     if (!doc) return { ok: false, reason: '地图数据无法解析' };
     return { ok: true, doc };
 }
+

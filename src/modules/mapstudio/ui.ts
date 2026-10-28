@@ -127,6 +127,7 @@ const TEMPLATE = `
       <footer class="cf-ms-status">
         <span id="cfMsCounts">房间 0 · 墙 0 · 门 0</span>
         <span class="cf-ms-hint" id="cfMsHint">拖动选择 · Delete 删除 · Ctrl+Z 撤销</span>
+        <span class="cf-ms-hint" id="cfMsSave" aria-live="polite"></span>
       </footer>
     </section>
 
@@ -256,6 +257,11 @@ export function mountMapStudio(): MapStudioPanelApi {
     el<HTMLButtonElement>('cfMsDelete').addEventListener('click', () => studio.deleteSelected());
 
     /* ---------- 自动生成 ---------- */
+    function docSlug(): string {
+        const raw = (studio.collect().name || '未命名地图').trim();
+        return raw.replace(/[\\/:*?"<>|\s]+/g, '-').slice(0, 40) || 'map';
+    }
+
     function generateNow(): void {
         const seed = el<HTMLInputElement>('cfMsSeed').value.trim() || 'ashcroft';
         const roomCount = Number(el<HTMLInputElement>('cfMsRoomCount').value) || 7;
@@ -263,6 +269,10 @@ export function mountMapStudio(): MapStudioPanelApi {
         const rows = Number(el<HTMLInputElement>('cfMsRows').value) || 18;
         const doors = el<HTMLInputElement>('cfMsGenDoors').checked;
         const cell = studio.doc.grid.cell;
+        const counts = studio.counts();
+        if (counts.rooms + counts.walls + counts.doors > 0) {
+            if (!confirm('生成会替换当前地图（Ctrl+Z 可撤销），继续？')) return;
+        }
         studio.generate({ seed, roomCount, cols, rows, doors, cell }, true);
         studio.fitZoom();
         fitted = true;
@@ -273,6 +283,31 @@ export function mountMapStudio(): MapStudioPanelApi {
     el<HTMLButtonElement>('cfMsEmptyGen').addEventListener('click', generateNow);
 
     /* ---------- 新建 / 导出 / 底图 ---------- */
+    const titleEl = document.querySelector('#mapStudioPanel .cf-ms-title h2');
+    if (titleEl) {
+        titleEl.setAttribute('title', '双击改地图名');
+        titleEl.addEventListener('dblclick', () => {
+            const next = window.prompt('地图名', studio.collect().name);
+            if (next !== null) {
+                studio.setDocName(next);
+                titleEl.textContent = studio.collect().name;
+            }
+        });
+    }
+
+    // 存档反馈：project.js 把「有更改… / 保存中… / 已自动保存 (hh:mm:ss)」写进 #cache-status，
+    // 这里镜像到工坊状态栏，免得用户以为改的东西没落盘。
+    const cacheStatus = document.getElementById('cache-status');
+    const saveEl = document.getElementById('cfMsSave');
+    if (cacheStatus && saveEl) {
+        const mirror = (): void => {
+            const text = (cacheStatus.textContent || '').trim();
+            saveEl.textContent = text ? '存档：' + text : '';
+        };
+        mirror();
+        new MutationObserver(mirror).observe(cacheStatus, { childList: true, characterData: true, subtree: true });
+    }
+
     el<HTMLButtonElement>('cfMsNew').addEventListener('click', () => {
         if (studio.counts().rooms + studio.counts().walls + studio.counts().doors > 0) {
             if (!confirm('清空当前地图？可以用 Ctrl+Z 撤销。')) return;
@@ -286,13 +321,13 @@ export function mountMapStudio(): MapStudioPanelApi {
         const opt = el<HTMLSelectElement>('cfMsPngOpt').value || '1-0';
         const [s, g] = opt.split('-');
         const dataUrl = await studio.exportPNG({ scale: Number(s) || 1, grid: g === '1' });
-        downloadDataUrl(dataUrl, `map-${stamp()}${s === '2' ? '@2x' : ''}${g === '1' ? '-grid' : ''}.png`);
+        downloadDataUrl(dataUrl, `${docSlug()}-${stamp()}${s === '2' ? '@2x' : ''}${g === '1' ? '-grid' : ''}.png`);
     });
 
     el<HTMLButtonElement>('cfMsJson').addEventListener('click', () => {
         const blob = new Blob([studio.toJSON()], { type: 'application/json;charset=utf-8' });
         const url = URL.createObjectURL(blob);
-        downloadDataUrl(url, `map-${stamp()}.json`);
+        downloadDataUrl(url, `${docSlug()}-${stamp()}.json`);
         setTimeout(() => URL.revokeObjectURL(url), 2000);
     });
 
@@ -310,6 +345,7 @@ export function mountMapStudio(): MapStudioPanelApi {
                 }
                 studio.pushHistory();
                 studio.loadDoc(check.doc, false);
+                studio.dedupeRoomNames();
                 syncCellUi();
                 studio.fitZoom();
                 fitted = true;
@@ -534,4 +570,6 @@ function downloadDataUrl(href: string, filename: string): void {
     a.click();
     a.remove();
 }
+
+
 

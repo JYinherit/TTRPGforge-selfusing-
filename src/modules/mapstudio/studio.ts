@@ -469,7 +469,9 @@ export class MapStudio {
         }
         const target = opt.target as FabricWithCf | undefined;
         if (target && target.cf && target.cf.type === 'room') {
-            this.emit();
+            const meta = target.cf as RoomMeta;
+            const next = window.prompt('房间名', meta.name);
+            if (next !== null) this.renameRoomById(meta.id, next);
         }
     }
 
@@ -507,6 +509,22 @@ export class MapStudio {
             meta.left = o.left || 0;
             meta.top = o.top || 0;
             this.syncLabel(meta);
+            this.canvas.requestRenderAll();
+            this.reportSelection();
+            this.emit();
+            return;
+        }
+        if (meta.type === 'corridor') {
+            const half = g.cell / 2;
+            const w = Math.max(half, snap((o.width || 0) * (o.scaleX || 1), half));
+            const h = Math.max(half, snap((o.height || 0) * (o.scaleY || 1), half));
+            o.set({ width: w, height: h, scaleX: 1, scaleY: 1, left: snap(o.left || 0, half), top: snap(o.top || 0, half) });
+            o.setCoords();
+            const meta2 = meta as unknown as { left: number; top: number; width: number; height: number };
+            meta2.left = o.left || 0;
+            meta2.top = o.top || 0;
+            meta2.width = w;
+            meta2.height = h;
             this.canvas.requestRenderAll();
             this.reportSelection();
             this.emit();
@@ -586,7 +604,7 @@ export class MapStudio {
         const room: RoomMeta = {
             id: nextId('room'),
             type: 'room',
-            name: `房间 ${this.counts().rooms + 1}`,
+            name: this.uniqueRoomName(`房间 ${this.counts().rooms + 1}`, ''),
             left: geo.left,
             top: geo.top,
             width: geo.width,
@@ -740,10 +758,59 @@ export class MapStudio {
         });
         if (!target) return;
         this.pushHistory();
-        (target as RoomMeta).name = name || '房间';
+        const clean = this.uniqueRoomName(name.trim() || '房间', id);
+        // rect 与 label 各持一份 cf，改名必须两份一起写，否则标签和存档会打架
+        this.canvas.forEachObject((o: FObject) => {
+            const meta = (o as FabricWithCf).cf;
+            if (meta && meta.type === 'room' && meta.id === id) meta.name = clean;
+        });
         this.syncLabel(target as RoomMeta);
         this.emit();
         this.reportSelection();
+    }
+
+    /** 同地图内房间名唯一：重名自动加序号，避免“删了 3 号房，新 3 号房和旧记录打架”。 */
+    uniqueRoomName(base: string, selfId: string): string {
+        const used = new Set<string>();
+        this.canvas.forEachObject((o: FObject) => {
+            const meta = (o as FabricWithCf).cf;
+            if (!meta || meta.type !== 'room' || meta.id === selfId) return;
+            if (meta.name) used.add(meta.name);
+        });
+        if (!used.has(base)) return base;
+        let i = 2;
+        while (used.has(`${base} (${i})`)) i += 1;
+        return `${base} (${i})`;
+    }
+
+    /** 存量重复名一次性打散（生成/导入后调用） */
+    dedupeRoomNames(): void {
+        const used = new Set<string>();
+        this.canvas.forEachObject((o: FObject) => {
+            const obj = o as FabricWithCf;
+            const meta = obj.cf;
+            if (!meta || meta.type !== 'room' || (obj as unknown as { cfLabel?: boolean }).cfLabel) return;
+            let name = meta.name || '房间';
+            if (used.has(name)) {
+                let i = 2;
+                while (used.has(`${name} (${i})`)) i += 1;
+                name = `${name} (${i})`;
+                const id = meta.id;
+                this.canvas.forEachObject((other: FObject) => {
+                    const m = (other as FabricWithCf).cf;
+                    if (m && m.type === 'room' && m.id === id) m.name = name;
+                });
+                this.syncLabel(meta);
+            }
+            used.add(name);
+        });
+    }
+
+    setDocName(name: string): void {
+        const clean = name.trim().slice(0, 60);
+        if (!clean) return;
+        this.doc.name = clean;
+        this.emit();
     }
 
     deleteSelected(): void {
@@ -774,6 +841,7 @@ export class MapStudio {
             this.pushHistory();
             this.doc = gen;
             this.loadDoc(gen, false);
+            this.dedupeRoomNames();
         } else {
             // 追加模式：保留现有元素，把生成结果并进来
             const merged: MapDoc = clone(this.doc);
