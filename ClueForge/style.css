@@ -2578,3 +2578,11 @@ textarea.props-input {
 .cf-ms-ins-row .cf-ms-input { flex: 1; min-width: 0; }
 .cf-ms-ins-row .cf-ms-btn { flex: none; }
 
+
+/* ── 地图工坊激活时把右侧浮动按钮让开，避免压住检查器 ────────── */
+body:has(#mapStudioPanel.active) .notes-toggle-btn {
+    right: calc(var(--cf-inspector-w) + var(--cf-space-4));
+}
+body:has(#mapStudioPanel.active) .ai-toggle-btn {
+    right: calc(var(--cf-inspector-w) + var(--cf-space-4));
+}
