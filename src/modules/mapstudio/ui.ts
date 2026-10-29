@@ -230,6 +230,8 @@ export function mountMapStudio(): MapStudioPanelApi {
         cellInput.value = String(studio.doc.grid.cell);
         cellVal.textContent = `${studio.doc.grid.cell}px`;
         metersInput.value = String(studio.getMetersPerCell());
+        const repeatEl = el<HTMLInputElement>('cfMsRepeat');
+        repeatEl.checked = studio.doc.backgroundRepeat === true;
     }
 
     /* ---------- 工具栏 ---------- */

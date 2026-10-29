@@ -319,21 +319,27 @@ export class MapStudio {
             url,
             (img: FObject) => {
                 if (repeat) {
-                    // 地板材质：按格尺寸平铺，玩家端与导出都跟格对齐
-                    const cell = this.doc.grid.cell;
-                    const iw = img.width || cell;
-                    const ih = img.height || cell;
-                    img.set({
-                        left: 0,
-                        top: 0,
-                        scaleX: cell / iw,
-                        scaleY: cell / ih,
-                        selectable: false,
-                        evented: false
-                    });
-                    this.canvas.setBackgroundImage(img as unknown as string, this.canvas.renderAll.bind(this.canvas), {
-                        repeat: 'repeat'
-                    } as unknown as undefined);
+                    // 地板材质平铺：fabric 5 的 Image repeat 选项不生效，Pattern 在本构建里没有 render；
+                    // 故先用 2D canvas 按文档尺寸铺满一张 tile 图，再整体作为背景图（1:1，不拉伸）。
+                    const getEl = (img as unknown as { getElement?: () => HTMLImageElement }).getElement;
+                    const src = typeof getEl === 'function' ? getEl.call(img) : null;
+                    const w = Math.max(1, Math.round(this.doc.size.width));
+                    const h = Math.max(1, Math.round(this.doc.size.height));
+                    const tile = document.createElement('canvas');
+                    tile.width = w;
+                    tile.height = h;
+                    const ctx = tile.getContext('2d');
+                    const pat = ctx && src ? ctx.createPattern(src, 'repeat') : null;
+                    if (ctx && pat) {
+                        ctx.fillStyle = pat;
+                        ctx.fillRect(0, 0, w, h);
+                        const bg = new fabric.Image(tile, { left: 0, top: 0, selectable: false, evented: false });
+                        this.canvas.setBackgroundImage(bg as unknown as string, this.canvas.renderAll.bind(this.canvas));
+                        return;
+                    }
+                    // 平铺失败兜底：按原始尺寸居中铺一次
+                    img.set({ left: 0, top: 0, selectable: false, evented: false });
+                    this.canvas.setBackgroundImage(img as unknown as string, this.canvas.renderAll.bind(this.canvas));
                 } else {
                     img.set({
                         left: 0,
@@ -1323,6 +1329,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
         img.src = src;
     });
 }
+
+
+
 
 
 
