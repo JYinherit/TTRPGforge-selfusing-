@@ -7,6 +7,7 @@ import { fabric } from '../../vendor';
 import { paintGrid, snap, snapHalf, snapPoint } from './grid';
 import { generateMap } from './generator';
 import type { GenOptions } from './generator';
+import { ASSET_LIMITS, DOC_LIMITS, UNDO_MAX_BYTES, EXPORT_MAX_PIXELS, contentHash, dataUrlBytes } from './limits';
 import { collectDoc, docToJSON, docToObjects, normalizeDoc } from './serialize';
 import { createEmptyDoc, nextId } from './types';
 import type { AssetMeta, CorridorMeta, DoorMeta, MapDoc, MarkerMeta, Pt, RoomMeta, WallMeta } from './types';
@@ -76,6 +77,9 @@ export class MapStudio {
     private applyingGroup = false;
     zoom = 0.75;
     showGrid = true;
+    /** 最近一次导出的实际倍率；被像素闸门降过时 degraded=true（UI 提示用）。 */
+    lastExportScale = 1;
+    lastExportDegraded = false;
 
     /** 图片资产（token / 物件 / 地板材质）。不进撤销快照：撤销只回文档，资产只在会话内常驻。 */
     assets: AssetMeta[] = [];
@@ -296,6 +300,7 @@ export class MapStudio {
         this.canvas.clear();
         this.sizeCanvas();
         docToObjects(d).forEach((obj) => this.canvas.add(obj));
+        this.normalizeLayerOrder();
         this.applyBackground();
         this.suppress = false;
         if (resetHistory) {
@@ -395,7 +400,16 @@ export class MapStudio {
         const snapshot = this.snapshot();
         if (this.undoStack[this.undoStack.length - 1] === snapshot) return;
         this.undoStack.push(snapshot);
-        if (this.undoStack.length > this.limit) this.undoStack.shift();
+        while (this.undoStack.length > this.limit) this.undoStack.shift();
+        // 字节封顶：底图/大文档时按总大小丢最老的一步，避免几十份全量 JSON 撑爆内存
+        let bytes = 0;
+        for (let i = this.undoStack.length - 1; i >= 0; i--) {
+            bytes += this.undoStack[i].length;
+            if (bytes > UNDO_MAX_BYTES) {
+                this.undoStack.splice(0, i + 1);
+                break;
+            }
+        }
         this.redoStack = [];
         this.emit();
     }
@@ -742,17 +756,32 @@ export class MapStudio {
         this.reportSelection();
     }
 
-    /** 注册一张图片资产（调用方负责先压到 256px / 300KB 以内），返回 assetId。 */
+    /** 标记备注：≤40 字符，只存文档、不参与画布渲染（检查器与 JSON 里可见）。 */
+    setMarkerLabel(label: string): void {
+        const active = this.canvas.getActiveObject() as FabricWithCf | undefined;
+        const meta = active && active.cf;
+        if (!meta || meta.type !== 'marker') return;
+        const value = Array.from(String(label || '').trim()).slice(0, DOC_LIMITS.markerLabel).join('');
+        if ((meta.label || '') === value) return;
+        this.pushHistory();
+        meta.label = value || undefined;
+        this.emit();
+        this.reportSelection();
+    }
+
+    /** 注册一张图片资产（调用方负责先压到 256/512px 内），返回 assetId。 */
     addAsset(dataUrl: string, kind: 'token' | 'prop' | 'texture' = 'token', w = 256, h = 256): string | null {
         if (!dataUrl.startsWith('data:image/')) return null;
-        const hash = `${dataUrl.length}_${dataUrl.slice(-48)}`;
+        const hash = contentHash(dataUrl);
         const existing = this.assets.find((a) => a.hash === hash);
         if (existing) return existing.id;
-        if (this.assets.length >= 40) return null;
+        if (this.assets.length >= ASSET_LIMITS.count) return null;
+        const bytes = dataUrlBytes(dataUrl);
+        if (bytes > ASSET_LIMITS.bytes) return null;
+        // 写路径必须与读路径同一道闸门：总量超限就拒绝，不能“存得进、读不回”
+        const total = this.assets.reduce((sum, a) => sum + (a.bytes || 0), 0);
+        if (total + bytes > ASSET_LIMITS.totalBytes) return null;
         const id = nextId('asset');
-        const comma = dataUrl.indexOf(',');
-        const bytes = comma >= 0 ? Math.floor((dataUrl.length - comma - 1) * 0.75) : 0;
-        if (bytes > 300 * 1024) return null;
         this.assets.push({ id, hash, kind, dataUrl, w, h, bytes });
         const img = new Image();
         img.onload = () => {
@@ -889,6 +918,23 @@ export class MapStudio {
             (o as unknown as FTextbox).set({ text: room.name });
             o.setCoords();
         });
+        this.canvas.requestRenderAll();
+    }
+
+    /** 统一图层顺序：房间 → 房名 → 墙 → 门 → 走廊 → 标记。
+     *  新增/重建对象后调用，避免“后加的元素骑在一切上面”，让编辑态与读档后的层级一致。 */
+    normalizeLayerOrder(): void {
+        const rank = (o: FabricWithCf): number => {
+            const t = o.cf && o.cf.type;
+            if (t === 'room') return (o as unknown as { cfLabel?: boolean }).cfLabel ? 1 : 0;
+            if (t === 'wall') return 2;
+            if (t === 'door') return 3;
+            if (t === 'corridor') return 4;
+            if (t === 'marker') return 5;
+            return 6;
+        };
+        const list = (this.canvas as unknown as { _objects: FabricWithCf[] })._objects;
+        list.sort((a, b) => rank(a) - rank(b));
         this.canvas.requestRenderAll();
     }
 
@@ -1263,9 +1309,15 @@ export class MapStudio {
      * grid 可强制含/不含格线，scale 支持 1–4 倍（2x 适合印在纸质卡上）。
      */
     async exportPNG(opts: { grid?: boolean; scale?: number } = {}): Promise<string> {
-        const scale = Math.max(1, Math.min(4, Math.round(opts.scale ?? 1)));
+        let scale = Math.max(1, Math.min(4, Math.round(opts.scale ?? 1)));
         const withGrid = opts.grid ?? this.showGrid;
         const { width, height } = this.doc.size;
+        // 像素闸门：超大图幅 + 4x 会让 canvas 直接分配失败（白屏/崩溃），这里自动降倍率
+        const maxScale = Math.sqrt(EXPORT_MAX_PIXELS / Math.max(1, width * height));
+        const clamped = Math.max(1, Math.min(scale, Math.floor(maxScale * 100) / 100));
+        this.lastExportScale = clamped;
+        this.lastExportDegraded = clamped < scale;
+        scale = clamped;
         const out = document.createElement('canvas');
         out.width = width * scale;
         out.height = height * scale;
@@ -1329,6 +1381,8 @@ function loadImage(src: string): Promise<HTMLImageElement> {
         img.src = src;
     });
 }
+
+
 
 
 

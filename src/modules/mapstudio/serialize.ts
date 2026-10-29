@@ -6,6 +6,7 @@
    ================================================================ */
 import { fabric } from '../../vendor';
 import { clamp } from './grid';
+import { DOC_LIMITS } from './limits';
 import { makeCorridor, makeDoor, makeMarker, makeRoom, makeRoomLabel, makeWall, type FabricWithCf } from './objects';
 import { gridMeters } from './types';
 import type { AssetMeta, CorridorMeta, DoorMeta, MapDoc, MarkerMeta, RoomMeta, WallMeta } from './types';
@@ -111,27 +112,6 @@ export function docToJSON(doc: MapDoc): string {
     return JSON.stringify(doc, null, 2);
 }
 
-/** 导入/读档的硬上限：这些值直接喂给 canvas 与绘制循环，无界就能用一份 JSON 冻死页面。 */
-const DOC_LIMITS = {
-    cellMin: 12,
-    cellMax: 160,
-    /** 坐标/原点允许的最大绝对值 */
-    coord: 1e6,
-    sizeMin: 64,
-    sizeMax: 10000,
-    metersMin: 0.2,
-    metersMax: 30,
-    /** rooms/walls/doors/corridors 各自的成员上限 */
-    items: 2000,
-    /** 单条墙的折点上限 */
-    wallPoints: 500,
-    /** 标记（token / 物件）上限 */
-    markers: 500,
-    /** 图片资产：条数、单张、总量 */
-    assets: 40,
-    assetBytes: 300 * 1024,
-    assetsTotal: 6 * 1024 * 1024
-};
 
 function num(v: unknown, fallback: number): number {
     return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
@@ -247,7 +227,7 @@ export function normalizeDoc(raw: unknown): MapDoc | null {
                 sizeCells: clamp(Math.round(num(g.sizeCells, 1)), 1, 4),
                 color: typeof g.color === 'string' && /^#[0-9a-f]{6}$/i.test(g.color) ? g.color : '#a8a094',
                 glyph: typeof g.glyph === 'string' && g.glyph ? g.glyph.slice(0, 1) : '?',
-                label: typeof g.label === 'string' ? g.label.slice(0, 40) : undefined,
+                label: typeof g.label === 'string' ? Array.from(g.label).slice(0, DOC_LIMITS.markerLabel).join('') : undefined,
                 assetId: typeof g.assetId === 'string' ? g.assetId : undefined
             } as MarkerMeta);
         });
@@ -330,6 +310,7 @@ export function validateMapDoc(raw: unknown): DocValidation {
     if (!doc) return { ok: false, reason: '地图数据无法解析' };
     return { ok: true, doc };
 }
+
 
 
 

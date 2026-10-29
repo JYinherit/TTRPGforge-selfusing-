@@ -36,6 +36,14 @@ function boot(): void {
         console.warn('[clueforge] 找不到 #mapStudioPanel，地图工坊未挂载');
         return;
     }
+    // 持久化存储：IndexedDB 在磁盘紧张/清理时可能被整源回收，主动申请一次 persist
+    try {
+        void navigator.storage?.persist?.().then((ok) => {
+            if (!ok) console.info('[clueforge] 浏览器未授予持久化存储，清缓存可能丢存档');
+        });
+    } catch {
+        /* 老浏览器无 storage.persist，忽略 */
+    }
     try {
         const api = mountMapStudio();
         window.ClueForgeBridge = {

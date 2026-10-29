@@ -4,6 +4,7 @@
    对外只暴露 window.ClueForgeBridge（见 src/main.ts），老模块通过它存取数据。
    ================================================================ */
 import { lengthToMeters } from './grid';
+import { ASSET_LIMITS, EXPORT_MAX_PIXELS } from './limits';
 import { MARKER_COLORS } from './objects';
 import { validateMapDoc } from './serialize';
 import { MapStudio } from './studio';
@@ -260,7 +261,7 @@ export function mountMapStudio(): MapStudioPanelApi {
     /* ---------- 图片资产：压到 256px 以内再进存档，避免一张 JPEG 把工程撑爆 ---------- */
     const imgInput = el<HTMLInputElement>('cfMsImgIn');
 
-    function shrinkImage(file: File): Promise<{ dataUrl: string; w: number; h: number }> {
+    function shrinkImage(file: File, maxSide: number = ASSET_LIMITS.maxSideToken): Promise<{ dataUrl: string; w: number; h: number }> {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onerror = () => reject(new Error('读取图片失败'));
@@ -268,7 +269,7 @@ export function mountMapStudio(): MapStudioPanelApi {
                 const img = new Image();
                 img.onerror = () => reject(new Error('图片解码失败'));
                 img.onload = () => {
-                    const max = 256;
+                    const max = maxSide;
                     const scale = Math.min(1, max / Math.max(img.width, img.height));
                     const w = Math.max(1, Math.round(img.width * scale));
                     const h = Math.max(1, Math.round(img.height * scale));
@@ -296,7 +297,7 @@ export function mountMapStudio(): MapStudioPanelApi {
             return;
         }
         try {
-            const { dataUrl, w, h } = await shrinkImage(file);
+            const { dataUrl, w, h } = await shrinkImage(file, ASSET_LIMITS.maxSideToken);
             // 有选中标记 → 换图；没选中 → 作为底图/地板材质载入
             const selected = studio.activeMeta();
             if (selected && selected.type === 'marker') {
@@ -304,7 +305,9 @@ export function mountMapStudio(): MapStudioPanelApi {
                 return;
             }
             const repeat = el<HTMLInputElement>('cfMsRepeat').checked;
-            studio.commitBackground(dataUrl, repeat);
+            // 底图/地板材质可以大一点（要平铺），但仍有边长上限；texture 单独压一次
+            const tex = repeat ? await shrinkImage(file, ASSET_LIMITS.maxSideTexture) : { dataUrl, w, h };
+            studio.commitBackground(tex.dataUrl, repeat);
         } catch (err) {
             alert(String((err as Error).message || err));
         } finally {
@@ -416,7 +419,12 @@ export function mountMapStudio(): MapStudioPanelApi {
         const opt = el<HTMLSelectElement>('cfMsPngOpt').value || '1-0';
         const [s, g] = opt.split('-');
         const dataUrl = await studio.exportPNG({ scale: Number(s) || 1, grid: g === '1' });
-        downloadDataUrl(dataUrl, `${docSlug()}-${stamp()}${s === '2' ? '@2x' : ''}${g === '1' ? '-grid' : ''}.png`);
+        const scaleTag = studio.lastExportDegraded ? `@${studio.lastExportScale.toFixed(2)}x` : `@${Number(s) || 1}x`;
+        downloadDataUrl(dataUrl, `${docSlug()}-${stamp()}${scaleTag}${g === '1' ? '-grid' : ''}.png`);
+        if (studio.lastExportDegraded) {
+            hintEl.textContent = `图幅过大，已自动降到 ${studio.lastExportScale.toFixed(2)}x（像素上限 ${Math.round(EXPORT_MAX_PIXELS / 1048576)}M）`;
+            hintEl.classList.add('warn');
+        }
     });
 
     el<HTMLButtonElement>('cfMsJson').addEventListener('click', () => {
@@ -550,6 +558,9 @@ export function mountMapStudio(): MapStudioPanelApi {
                 '<div class="cf-ms-label">颜色</div>',
                 `<div class="cf-ms-swatches" id="cfMsSwatches">${swatches}</div>`,
                 '<div class="cf-ms-ins-row"><span class="cf-ms-k">字形</span><input class="cf-ms-input" id="cfMsGlyph" maxlength="2" value="' + escapeHtml(meta.glyph) + '" /></div>',
+                '<div class="cf-ms-label">备注</div>',
+                '<input class="cf-ms-input block" id="cfMsNote" maxlength="40" placeholder="只存文档，不上画布" value="' + escapeHtml(meta.label || '') + '" />',
+                `<div class="cf-ms-hint" id="cfMsNoteCount">${Array.from(meta.label || '').length}/40</div>`,
                 '<div class="cf-ms-ins-row"><span class="cf-ms-k">大小</span><select class="cf-ms-input" id="cfMsSize">' +
                     [1, 2, 3, 4].map((n) => `<option value="${n}"${n === meta.sizeCells ? ' selected' : ''}>${n} 格</option>`).join('') +
                     '</select></div>',
@@ -567,6 +578,14 @@ export function mountMapStudio(): MapStudioPanelApi {
             }
             const sizeSel = document.getElementById('cfMsSize') as HTMLSelectElement | null;
             if (sizeSel) sizeSel.addEventListener('change', () => studio.setMarkerProps({ sizeCells: Number(sizeSel.value) || 1 }));
+            const noteInput = document.getElementById('cfMsNote') as HTMLInputElement | null;
+            const noteCount = document.getElementById('cfMsNoteCount');
+            if (noteInput) {
+                noteInput.addEventListener('input', () => {
+                    if (noteCount) noteCount.textContent = `${Array.from(noteInput.value).length}/40`;
+                });
+                noteInput.addEventListener('change', () => studio.setMarkerLabel(noteInput.value));
+            }
             const insUpload = document.getElementById('cfMsInsUpload');
             if (insUpload) insUpload.addEventListener('click', () => imgInput.click());
             const insClear = document.getElementById('cfMsInsClearImg');
@@ -725,6 +744,8 @@ function downloadDataUrl(href: string, filename: string): void {
     a.click();
     a.remove();
 }
+
+
 
 
 
