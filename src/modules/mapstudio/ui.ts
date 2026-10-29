@@ -359,8 +359,11 @@ export function mountMapStudio(): MapStudioPanelApi {
     /* ---------- 自动生成 ---------- */
     function docSlug(): string {
         const raw = (studio.collect().name || '未命名地图').trim();
-        return raw.replace(/[\\/:*?"<>|\s]+/g, '-').slice(0, 40) || 'map';
+        return raw.replace(/[\\/:*?"<>|\s·、，。！？；：（）()【】《》]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'map';
     }
+
+    /** 本次会话内的导出序号，保证同名地图连续出图不互相覆盖。 */
+    let pngSeq = 0;
 
     function generateNow(): void {
         const seed = el<HTMLInputElement>('cfMsSeed').value.trim() || 'ashcroft';
@@ -422,7 +425,8 @@ export function mountMapStudio(): MapStudioPanelApi {
         const [s, g] = opt.split('-');
         const dataUrl = await studio.exportPNG({ scale: Number(s) || 1, grid: g === '1' });
         const scaleTag = studio.lastExportDegraded ? `@${studio.lastExportScale.toFixed(2)}x` : `@${Number(s) || 1}x`;
-        downloadDataUrl(dataUrl, `${docSlug()}-${stamp()}${scaleTag}${g === '1' ? '-grid' : ''}.png`);
+        pngSeq += 1;
+        downloadDataUrl(dataUrl, `${docSlug()}-${stamp()}-p${pngSeq}${scaleTag}${g === '1' ? '-grid' : ''}.png`);
         if (studio.lastExportDegraded) {
             hintEl.textContent = `图幅过大，已自动降到 ${studio.lastExportScale.toFixed(2)}x（像素上限 ${Math.round(EXPORT_MAX_PIXELS / 1048576)}M）`;
             hintEl.classList.add('warn');
