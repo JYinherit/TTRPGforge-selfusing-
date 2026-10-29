@@ -87,6 +87,13 @@
     --cf-icon-md: 20px;
     --cf-icon-lg: 26px;
     --cf-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
+    /* 标记检查器 */
+    --cf-swatch-size: 20px;
+    --cf-swatch-gap: 6px;
+    --cf-swatch-border: rgba(0, 0, 0, 0.45);
+    --cf-ins-row-gap: 8px;
+    --cf-ins-row-margin: 6px 0;
 }
 
 :root { --cf-hairline: 1px; }
+

@@ -22,7 +22,7 @@ export interface GridSpec {
 
 export interface MetaBase {
     id: string;
-    type: 'room' | 'wall' | 'door' | 'corridor';
+    type: 'room' | 'wall' | 'door' | 'corridor' | 'marker';
 }
 
 /** 房间：矩形（像素坐标，左下原点由编辑器统一处理为左上原点）。 */
@@ -66,6 +66,37 @@ export interface CorridorMeta extends MetaBase {
     height: number;
 }
 
+/** 标记/物件：FVTT 风格的 token 与道具，几何只记中心点 + 格数。 */
+export interface MarkerMeta extends MetaBase {
+    type: 'marker';
+    /** token=圆形棋子；prop=方形物件 */
+    shape: 'token' | 'prop';
+    /** 中心点（像素，绝对坐标） */
+    x: number;
+    y: number;
+    /** 占几格（1 格 = grid.cell） */
+    sizeCells: number;
+    /** 主色（十六进制，仅从内置色板取） */
+    color: string;
+    /** 单字符字形（token 上显示首字） */
+    glyph: string;
+    label?: string;
+    /** 可选：引用 assets 里的图片（上传的 token/物件图） */
+    assetId?: string;
+}
+
+/** 二进制资产（图片）以 dataURL 存档；体积在导入/上传时就被钳住。 */
+export interface AssetMeta {
+    id: string;
+    /** 内容哈希，用于去重 */
+    hash: string;
+    kind: 'token' | 'prop' | 'texture';
+    dataUrl: string;
+    w: number;
+    h: number;
+    bytes: number;
+}
+
 export interface MapDoc {
     version: 1;
     name: string;
@@ -74,9 +105,13 @@ export interface MapDoc {
     walls: WallMeta[];
     doors: DoorMeta[];
     corridors: CorridorMeta[];
+    markers?: MarkerMeta[];
+    assets?: AssetMeta[];
     /** 画布逻辑尺寸（未缩放）与当前背景图像（dataURL）。 */
     size: { width: number; height: number };
     background?: string | null;
+    /** 底图是否平铺（地板材质） */
+    backgroundRepeat?: boolean;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -96,8 +131,11 @@ export function createEmptyDoc(name = '未命名地图'): MapDoc {
         walls: [],
         doors: [],
         corridors: [],
+        markers: [],
+        assets: [],
         size: { width: 1600, height: 1000 },
         background: null,
+        backgroundRepeat: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
@@ -108,3 +146,4 @@ export function gridMeters(px: number, cellPx: number, metersPerCell = 1.5): num
     if (!cellPx) return 0;
     return (px / cellPx) * metersPerCell;
 }
+

@@ -6,9 +6,9 @@
    ================================================================ */
 import { fabric } from '../../vendor';
 import { clamp } from './grid';
-import { makeCorridor, makeDoor, makeRoom, makeRoomLabel, makeWall, type FabricWithCf } from './objects';
+import { makeCorridor, makeDoor, makeMarker, makeRoom, makeRoomLabel, makeWall, type FabricWithCf } from './objects';
 import { gridMeters } from './types';
-import type { CorridorMeta, DoorMeta, MapDoc, RoomMeta, WallMeta } from './types';
+import type { AssetMeta, CorridorMeta, DoorMeta, MapDoc, MarkerMeta, RoomMeta, WallMeta } from './types';
 
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
@@ -21,6 +21,7 @@ export function docToObjects(doc: MapDoc): FabricWithCf[] {
     });
     doc.walls.forEach((w) => objs.push(makeWall(w)));
     doc.doors.forEach((d) => objs.push(makeDoor(d)));
+    (doc.markers || []).forEach((m) => objs.push(makeMarker(m, doc.grid.cell)));
     return objs;
 }
 
@@ -34,6 +35,7 @@ export function collectDoc(canvas: fabric.Canvas, base: MapDoc): MapDoc {
     next.walls = [];
     next.doors = [];
     next.corridors = [];
+    next.markers = [];
 
     canvas.forEachObject((obj) => {
         const o = obj as FabricWithCf;
@@ -44,12 +46,14 @@ export function collectDoc(canvas: fabric.Canvas, base: MapDoc): MapDoc {
             if ((o as unknown as { cfLabel?: boolean }).cfLabel) return;
             if (o.type !== 'rect') return;
             const geo = o as fabric.Rect;
-            const w = (geo.width || 0) * (geo.scaleX || 1);
-            const h = (geo.height || 0) * (geo.scaleY || 1);
+            // 组选时子对象坐标是相对选择框的，不能当绝对坐标用；此时以文档为准。
+            const inGroup = !!(o as unknown as { group?: unknown }).group;
+            const w = inGroup ? meta.width : (geo.width || 0) * (geo.scaleX || 1);
+            const h = inGroup ? meta.height : (geo.height || 0) * (geo.scaleY || 1);
             const room: RoomMeta = {
                 ...clone(meta),
-                left: round1(geo.left || 0),
-                top: round1(geo.top || 0),
+                left: round1(inGroup ? meta.left : geo.left || 0),
+                top: round1(inGroup ? meta.top : geo.top || 0),
                 width: round1(w),
                 height: round1(h),
                 meters: {
@@ -71,6 +75,20 @@ export function collectDoc(canvas: fabric.Canvas, base: MapDoc): MapDoc {
             d.x = round1(d.x);
             d.y = round1(d.y);
             next.doors.push(d);
+            return;
+        }
+        if (meta.type === 'marker') {
+            // 标记以文档为真源：画布组选时子对象坐标是相对的，读出来会漂。
+            const geo = o as unknown as { left?: number; top?: number; width?: number; height?: number; scaleX?: number; scaleY?: number };
+            const w = ((geo.width || 0) * (geo.scaleX || 1));
+            const h = ((geo.height || 0) * (geo.scaleY || 1));
+            const inGroup = !!(o as unknown as { group?: unknown }).group;
+            next.markers!.push({
+                ...clone(meta),
+                x: round1(inGroup ? meta.x : (geo.left || 0) + w / 2),
+                y: round1(inGroup ? meta.y : (geo.top || 0) + h / 2),
+                sizeCells: inGroup ? meta.sizeCells : Math.max(1, Math.min(4, Math.round(Math.max(w, h) / Math.max(1, next.grid.cell))))
+            } as MarkerMeta);
             return;
         }
         if (meta.type === 'corridor') {
@@ -106,7 +124,13 @@ const DOC_LIMITS = {
     /** rooms/walls/doors/corridors 各自的成员上限 */
     items: 2000,
     /** 单条墙的折点上限 */
-    wallPoints: 500
+    wallPoints: 500,
+    /** 标记（token / 物件）上限 */
+    markers: 500,
+    /** 图片资产：条数、单张、总量 */
+    assets: 40,
+    assetBytes: 300 * 1024,
+    assetsTotal: 6 * 1024 * 1024
 };
 
 function num(v: unknown, fallback: number): number {
@@ -132,12 +156,15 @@ export function normalizeDoc(raw: unknown): MapDoc | null {
         walls: [],
         doors: [],
         corridors: [],
+        markers: [],
+        assets: [],
         size: {
             width: clamp(num(r.size?.width, 1600), DOC_LIMITS.sizeMin, DOC_LIMITS.sizeMax),
             height: clamp(num(r.size?.height, 1000), DOC_LIMITS.sizeMin, DOC_LIMITS.sizeMax)
         },
         // 只认内嵌图片：data: 之外的 URL 会在读档时被动外连（file:// 页面也挡不住 <img>）
         background: typeof r.background === 'string' && r.background.startsWith('data:image/') ? r.background : null,
+        backgroundRepeat: r.backgroundRepeat === true,
         createdAt: r.createdAt || new Date().toISOString(),
         updatedAt: r.updatedAt || new Date().toISOString()
     };
@@ -205,7 +232,63 @@ export function normalizeDoc(raw: unknown): MapDoc | null {
             });
         });
     }
+    if (Array.isArray(r.markers)) {
+        base.markers = [];
+        r.markers.slice(0, DOC_LIMITS.markers).forEach((m, idx) => {
+            if (!m || typeof m.x !== 'number' || typeof m.y !== 'number' || !Number.isFinite(m.x) || !Number.isFinite(m.y)) return;
+            const g = m as Partial<MarkerMeta>;
+            base.markers!.push({
+                ...m,
+                id: g.id || `mk_${idx}`,
+                type: 'marker',
+                shape: g.shape === 'prop' ? 'prop' : 'token',
+                x: clamp(g.x as number, -DOC_LIMITS.coord, DOC_LIMITS.coord),
+                y: clamp(g.y as number, -DOC_LIMITS.coord, DOC_LIMITS.coord),
+                sizeCells: clamp(Math.round(num(g.sizeCells, 1)), 1, 4),
+                color: typeof g.color === 'string' && /^#[0-9a-f]{6}$/i.test(g.color) ? g.color : '#a8a094',
+                glyph: typeof g.glyph === 'string' && g.glyph ? g.glyph.slice(0, 1) : '?',
+                label: typeof g.label === 'string' ? g.label.slice(0, 40) : undefined,
+                assetId: typeof g.assetId === 'string' ? g.assetId : undefined
+            } as MarkerMeta);
+        });
+    }
+    if (Array.isArray(r.assets)) {
+        base.assets = normalizeAssets(r.assets);
+    }
+    if (typeof r.backgroundRepeat === 'boolean') base.backgroundRepeat = r.backgroundRepeat;
     return base;
+}
+
+/** 只收内嵌图片资产；去重、限条数、限单张与总量（防止一份 JSON 把内存打满）。 */
+function normalizeAssets(raw: unknown[]): AssetMeta[] {
+    const out: AssetMeta[] = [];
+    const seen = new Set<string>();
+    let total = 0;
+    for (const item of raw) {
+        if (out.length >= DOC_LIMITS.assets) break;
+        if (!item || typeof item !== 'object') continue;
+        const a = item as Partial<AssetMeta>;
+        if (typeof a.dataUrl !== 'string' || !a.dataUrl.startsWith('data:image/')) continue;
+        const comma = a.dataUrl.indexOf(',');
+        if (comma < 0) continue;
+        const guess = Math.floor((a.dataUrl.length - comma - 1) * 0.75);
+        if (guess > DOC_LIMITS.assetBytes) continue;
+        if (total + guess > DOC_LIMITS.assetsTotal) break;
+        const hash = typeof a.hash === 'string' && a.hash ? a.hash : a.dataUrl.slice(-48);
+        if (seen.has(hash)) continue;
+        seen.add(hash);
+        total += guess;
+        out.push({
+            id: typeof a.id === 'string' && a.id ? a.id : `asset_${seen.size}`,
+            hash,
+            kind: a.kind === 'token' || a.kind === 'texture' ? a.kind : 'prop',
+            dataUrl: a.dataUrl,
+            w: num(a.w, 256),
+            h: num(a.h, 256),
+            bytes: guess
+        });
+    }
+    return out;
 }
 
 export type DocValidation = { ok: true; doc: MapDoc } | { ok: false; reason: string };
@@ -232,8 +315,22 @@ export function validateMapDoc(raw: unknown): DocValidation {
     if (typeof r.background === 'string' && !r.background.startsWith('data:image/')) {
         return { ok: false, reason: 'background 只接受内嵌 data:image/ 图片（拒绝外部链接）' };
     }
+    for (const key of ['markers', 'assets']) {
+        if (r[key] !== undefined && !Array.isArray(r[key])) return { ok: false, reason: `${key} 必须是数组` };
+    }
+    if (Array.isArray(r.assets)) {
+        for (const item of r.assets as Array<Record<string, unknown>>) {
+            const url = item && item.dataUrl;
+            if (typeof url === 'string' && !url.startsWith('data:image/')) {
+                return { ok: false, reason: 'assets 只接受内嵌 data:image/ 图片（拒绝外部链接）' };
+            }
+        }
+    }
     const doc = normalizeDoc(raw);
     if (!doc) return { ok: false, reason: '地图数据无法解析' };
     return { ok: true, doc };
 }
+
+
+
 

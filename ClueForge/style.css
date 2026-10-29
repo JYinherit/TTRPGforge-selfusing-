@@ -2565,3 +2565,16 @@ textarea.props-input {
 
 /* 检查器空态标题：强文本色，别跟着说明文字一起灰下去 */
 .cf-ms-ins-empty b { color: var(--cf-text-strong); font-weight: 600; font-size: var(--cf-text-md); }
+
+/* ===== 标记 / 多选检查器 ===== */
+.cf-ms-swatches { display: flex; flex-wrap: wrap; gap: var(--cf-swatch-gap); margin: var(--cf-space-1) 0 var(--cf-space-3); }
+.cf-ms-swatch {
+    width: var(--cf-swatch-size); height: var(--cf-swatch-size); border-radius: 50%; padding: 0; cursor: pointer;
+    background: var(--cf-swatch-color); border: var(--cf-hairline) solid var(--cf-swatch-border); box-shadow: none;
+}
+.cf-ms-swatch.active { outline: var(--cf-hairline) solid var(--cf-text-strong); outline-offset: 1px; }
+.cf-ms-swatch:hover { filter: brightness(1.15); }
+.cf-ms-ins-row { display: flex; align-items: center; gap: var(--cf-ins-row-gap); font-size: var(--cf-text-sm); color: var(--cf-text); margin: var(--cf-ins-row-margin); }
+.cf-ms-ins-row .cf-ms-input { flex: 1; min-width: 0; }
+.cf-ms-ins-row .cf-ms-btn { flex: none; }
+

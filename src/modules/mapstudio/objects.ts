@@ -5,7 +5,7 @@
    ================================================================ */
 import { fabric } from '../../vendor';
 import type { fabric as FabricNs } from 'fabric';
-import type { CorridorMeta, DoorMeta, RoomMeta, WallMeta } from './types';
+import type { CorridorMeta, DoorMeta, MarkerMeta, RoomMeta, WallMeta } from './types';
 
 export const INK = '#cfc7b8';
 export const INK_DIM = '#8b8577';
@@ -25,11 +25,13 @@ export interface CfAnchor {
 }
 
 export interface FabricWithCf extends FObject {
-    cf?: RoomMeta | WallMeta | DoorMeta | CorridorMeta;
+    cf?: RoomMeta | WallMeta | DoorMeta | CorridorMeta | MarkerMeta;
     /** 房间名标签标记：与房间矩形共用同一个 cf，回收几何时跳过它 */
     cfLabel?: boolean;
     /** 对象创建时的 left/top；object:modified 用它算整体位移（墙/门没有 cf 坐标兜底） */
     cfAnchor?: CfAnchor;
+    /** 标记里的图片图层（token 图片） */
+    cfImageView?: boolean;
 }
 
 export function makeRoom(room: RoomMeta): FabricWithCf {
@@ -189,4 +191,97 @@ export function rebuildByMeta(oldObj: FabricWithCf): FabricWithCf | null {
     if (meta.type === 'wall') return makeWall(meta);
     if (meta.type === 'door') return makeDoor(meta);
     return null;
+}
+
+/** 标记色板：取 FVTT 常用阵营色，全部满足深底对比度。 */
+export const MARKER_COLORS = ['#d0564f', '#d99a3e', '#7fa356', '#5b91b0', '#8f7ac8', '#a8a094'];
+
+export function markerDiameter(meta: MarkerMeta, cell: number): number {
+    return Math.max(cell * 0.7, meta.sizeCells * cell - 4);
+}
+
+/** token = 圆形棋子；prop = 方形物件。字形居中，颜色同时用于描边与字形。 */
+export function makeMarker(meta: MarkerMeta, cell: number): FabricWithCf {
+    const d = markerDiameter(meta, cell);
+    const r = d / 2;
+    const common = {
+        fill: hexA(meta.color, 0.3),
+        stroke: meta.color,
+        strokeWidth: 2,
+        strokeUniform: true
+    };
+    const body =
+        meta.shape === 'prop'
+            ? new fabric.Rect({ width: d, height: d, rx: 3, ry: 3, ...common })
+            : new fabric.Circle({ radius: r, ...common });
+    const glyph = new fabric.Text((meta.glyph || '?').slice(0, 1), {
+        fontSize: Math.max(10, Math.round(d * 0.46)),
+        fontWeight: '700',
+        fontFamily: 'Inter, "Segoe UI", "Microsoft YaHei", sans-serif',
+        fill: meta.color,
+        originX: 'center',
+        originY: 'center',
+        left: r,
+        top: r,
+        selectable: false,
+        evented: false
+    });
+    const group = new fabric.Group([body, glyph], {
+        left: meta.x - r,
+        top: meta.y - r,
+        originX: 'left',
+        originY: 'top',
+        hasRotatingPoint: false,
+        lockRotation: true,
+        cornerColor: GOLD,
+        cornerStrokeColor: '#2a2a3a',
+        cornerSize: 9,
+        transparentCorners: false,
+        borderColor: GOLD
+    }) as FabricWithCf;
+    group.cf = meta;
+    group.cfAnchor = { left: group.left || 0, top: group.top || 0 };
+    return group;
+}
+
+/** 上传图片版 token：圆形裁剪的 fabric.Image，几何与 makeMarker 一致。 */
+export function makeMarkerImage(meta: MarkerMeta, cell: number, img: HTMLImageElement): FabricWithCf {
+    const d = markerDiameter(meta, cell);
+    const r = d / 2;
+    const image = new fabric.Image(img, {
+        left: meta.x - r,
+        top: meta.y - r,
+        originX: 'left',
+        originY: 'top',
+        scaleX: d / (img.naturalWidth || img.width || d),
+        scaleY: d / (img.naturalHeight || img.height || d),
+        hasRotatingPoint: false,
+        lockRotation: true,
+        cornerColor: GOLD,
+        cornerStrokeColor: '#2a2a3a',
+        cornerSize: 9,
+        transparentCorners: false,
+        borderColor: GOLD,
+        clipPath: new fabric.Circle({
+            radius: r / (d / (img.naturalWidth || img.width || d)),
+            originX: 'center',
+            originY: 'center',
+            left: (img.naturalWidth || img.width || d) / 2,
+            top: (img.naturalHeight || img.height || d) / 2
+        })
+    }) as FabricWithCf;
+    image.cf = meta;
+    image.cfImageView = true;
+    image.cfAnchor = { left: image.left || 0, top: image.top || 0 };
+    return image;
+}
+
+function hexA(hex: string, alpha: number): string {
+    const m = /^#([0-9a-f]{6})$/i.exec(hex);
+    if (!m) return 'rgba(150,150,170,' + alpha + ')';
+    const n = parseInt(m[1], 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
 }

@@ -4,11 +4,14 @@
    对外只暴露 window.ClueForgeBridge（见 src/main.ts），老模块通过它存取数据。
    ================================================================ */
 import { lengthToMeters } from './grid';
+import { MARKER_COLORS } from './objects';
 import { validateMapDoc } from './serialize';
 import { MapStudio } from './studio';
-import type { StudioStatus, Tool, DoorKind } from './studio';
+import type { StudioStatus, Tool, DoorKind, MarkerShape, MultiSelection } from './studio';
 import { createEmptyDoc } from './types';
-import type { DoorMeta, MapDoc, RoomMeta, WallMeta } from './types';
+import type { DoorMeta, MapDoc, MarkerMeta, RoomMeta, WallMeta } from './types';
+
+type SelectionInfo = RoomMeta | WallMeta | DoorMeta | MarkerMeta | null;
 
 const TEMPLATE = `
 <div class="cf-ms">
@@ -51,7 +54,8 @@ const TEMPLATE = `
           <button class="cf-ms-tool" data-tool="room"><b>R</b>房间</button>
           <button class="cf-ms-tool" data-tool="wall"><b>W</b>墙体</button>
           <button class="cf-ms-tool" data-tool="door"><b>D</b>门</button>
-          <button class="cf-ms-tool full" data-tool="erase"><b>X</b>擦除</button>
+          <button class="cf-ms-tool" data-tool="marker"><b>M</b>标记</button>
+          <button class="cf-ms-tool" data-tool="erase"><b>X</b>擦除</button>
         </div>
       </div>
 
@@ -62,6 +66,16 @@ const TEMPLATE = `
           <button class="cf-ms-tool small" data-door="window">窗</button>
           <button class="cf-ms-tool small" data-door="secret">暗门</button>
         </div>
+      </div>
+
+      <div class="cf-ms-group">
+        <div class="cf-ms-label">标记类型</div>
+        <div class="cf-ms-toolgrid cols3">
+          <button class="cf-ms-tool small active" data-marker="token">Token</button>
+          <button class="cf-ms-tool small" data-marker="prop">物件</button>
+          <button class="cf-ms-tool small" id="cfMsUploadBtn" title="给选中的标记上传图片">上传图</button>
+        </div>
+        <input type="file" id="cfMsImgIn" accept="image/*" hidden />
       </div>
 
       <div class="cf-ms-group">
@@ -76,6 +90,7 @@ const TEMPLATE = `
           <span class="cf-ms-k">米</span>
         </div>
         <label class="cf-ms-check"><input type="checkbox" id="cfMsGrid" checked /> 显示格线</label>
+        <label class="cf-ms-check"><input type="checkbox" id="cfMsRepeat" /> 底图按格平铺（地板材质）</label>
       </div>
 
       <div class="cf-ms-group">
@@ -193,6 +208,7 @@ export function mountMapStudio(): MapStudioPanelApi {
         stage,
         onStatus: (s) => applyStatus(s),
         onSelection: (meta) => renderInspector(meta),
+        onMultiSelection: (info) => renderMultiInspector(info),
         onHistory: (undo, redo) => {
             undoBtn.disabled = undo === 0;
             redoBtn.disabled = redo === 0;
@@ -200,10 +216,10 @@ export function mountMapStudio(): MapStudioPanelApi {
     });
 
     function applyStatus(s: StudioStatus): void {
-        countsEl.textContent = `房间 ${s.rooms} · 墙 ${s.walls} · 门 ${s.doors}`;
+        countsEl.textContent = `房间 ${s.rooms} · 墙 ${s.walls} · 门 ${s.doors} · 标记 ${s.markers}`;
         hintEl.textContent = s.hint;
         zoomEl.textContent = `${s.zoomPct}%`;
-        const empty = s.rooms + s.walls + s.doors === 0;
+        const empty = s.rooms + s.walls + s.doors + s.markers === 0;
         emptyEl.style.display = empty ? 'flex' : 'none';
         document.querySelectorAll<HTMLButtonElement>('.cf-ms-tool[data-tool]').forEach((b) => {
             b.classList.toggle('active', b.dataset.tool === s.tool);
@@ -231,6 +247,79 @@ export function mountMapStudio(): MapStudioPanelApi {
         });
     });
 
+    document.querySelectorAll<HTMLButtonElement>('.cf-ms-tool[data-marker]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll<HTMLButtonElement>('.cf-ms-tool[data-marker]').forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            studio.setMarkerShape((btn.dataset.marker || 'token') as MarkerShape);
+        });
+    });
+
+    /* ---------- 图片资产：压到 256px 以内再进存档，避免一张 JPEG 把工程撑爆 ---------- */
+    const imgInput = el<HTMLInputElement>('cfMsImgIn');
+
+    function shrinkImage(file: File): Promise<{ dataUrl: string; w: number; h: number }> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error('读取图片失败'));
+            reader.onload = () => {
+                const img = new Image();
+                img.onerror = () => reject(new Error('图片解码失败'));
+                img.onload = () => {
+                    const max = 256;
+                    const scale = Math.min(1, max / Math.max(img.width, img.height));
+                    const w = Math.max(1, Math.round(img.width * scale));
+                    const h = Math.max(1, Math.round(img.height * scale));
+                    const cv = document.createElement('canvas');
+                    cv.width = w;
+                    cv.height = h;
+                    const ctx = cv.getContext('2d');
+                    if (!ctx) {
+                        reject(new Error('无法创建画布'));
+                        return;
+                    }
+                    ctx.drawImage(img, 0, 0, w, h);
+                    resolve({ dataUrl: cv.toDataURL('image/png'), w, h });
+                };
+                img.src = String(reader.result || '');
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function takeImage(file: File | null): Promise<void> {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            alert('只支持图片文件（PNG / JPG / WebP）。');
+            return;
+        }
+        try {
+            const { dataUrl, w, h } = await shrinkImage(file);
+            // 有选中标记 → 换图；没选中 → 作为底图/地板材质载入
+            const selected = studio.activeMeta();
+            if (selected && selected.type === 'marker') {
+                if (!studio.attachImageToSelected(dataUrl, w, h)) alert('图片过大（单张上限 300KB），换一张小一点的。');
+                return;
+            }
+            const repeat = el<HTMLInputElement>('cfMsRepeat').checked;
+            studio.commitBackground(dataUrl, repeat);
+        } catch (err) {
+            alert(String((err as Error).message || err));
+        } finally {
+            imgInput.value = '';
+        }
+    }
+
+    el<HTMLButtonElement>('cfMsUploadBtn').addEventListener('click', () => {
+        const selected = studio.activeMeta();
+        if (!selected || selected.type !== 'marker') {
+            alert('先点选一个标记（M 键放置），再上传图片；未选中时会作为底图载入。');
+            return;
+        }
+        imgInput.click();
+    });
+    imgInput.addEventListener('change', () => void takeImage(imgInput.files && imgInput.files[0] ? imgInput.files[0] : null));
+
     cellInput.addEventListener('input', () => {
         const v = Number(cellInput.value);
         studio.setGridCell(v);
@@ -240,6 +329,10 @@ export function mountMapStudio(): MapStudioPanelApi {
     metersInput.addEventListener('change', () => {
         studio.setMetersPerCell(Number(metersInput.value) || 1.5);
         metersInput.value = String(studio.getMetersPerCell());
+    });
+
+    el<HTMLInputElement>('cfMsRepeat').addEventListener('change', (e) => {
+        studio.setBackgroundRepeat((e.target as HTMLInputElement).checked);
     });
 
     el<HTMLInputElement>('cfMsGrid').addEventListener('change', (e) => {
@@ -370,7 +463,29 @@ export function mountMapStudio(): MapStudioPanelApi {
     });
 
     /* ---------- 检查器 ---------- */
-    function renderInspector(meta: RoomMeta | WallMeta | DoorMeta | null): void {
+    function renderMultiInspector(info: MultiSelection | null): void {
+        // 单选/空选由 renderInspector 负责；这里只处理真正的组选。
+        // 注意：构造期回调会先触发一次，此时 const studio 还没赋值，不能碰 studio。
+        if (!info || info.count === 0) return;
+        const parts: string[] = [];
+        if (info.rooms) parts.push(`房间 ${info.rooms}`);
+        if (info.walls) parts.push(`墙 ${info.walls}`);
+        if (info.doors) parts.push(`门 ${info.doors}`);
+        if (info.corridors) parts.push(`走廊 ${info.corridors}`);
+        if (info.markers) parts.push(`标记 ${info.markers}`);
+        inspectorEl.innerHTML = [
+            '<div class="cf-ms-insp">',
+            '<div class="cf-ms-ins-type">已选 ' + info.count + ' 个</div>',
+            `<div class="cf-ms-kv"><span>构成</span><b>${escapeHtml(parts.join(' · ') || '—')}</b></div>`,
+            '<p class="cf-ms-hint">拖动可整体移动（吸附网格）；Delete 或下面的按钮批量删除。</p>',
+            '<button class="cf-ms-btn danger block" id="cfMsBatchDelete">删除这 ' + info.count + ' 个</button>',
+            '</div>'
+        ].join('');
+        const batchBtn = document.getElementById('cfMsBatchDelete');
+        if (batchBtn) batchBtn.addEventListener('click', () => studio.deleteSelected());
+    }
+
+    function renderInspector(meta: SelectionInfo): void {
         if (!meta) {
             inspectorEl.innerHTML = [
                 '<div class="cf-ms-ins-empty">',
@@ -379,6 +494,8 @@ export function mountMapStudio(): MapStudioPanelApi {
                 '<span>点房间：改名、看尺寸</span>',
                 '<span>点墙体：看折点与总长</span>',
                 '<span>点门/窗：看类型与朝向</span>',
+                '<span>点标记：改颜色、字形、图片</span>',
+                '<span>拖框或 Shift+点击：多选</span>',
                 '</div>'
             ].join('');
             return;
@@ -418,6 +535,42 @@ export function mountMapStudio(): MapStudioPanelApi {
                 '<p class="cf-ms-hint">拖动可整体移动；端点吸附网格。</p>',
                 '</div>'
             ].join('');
+            return;
+        }
+        if (meta.type === 'marker') {
+            const swatches = MARKER_COLORS.map((c) =>
+                `<button class="cf-ms-swatch${c === meta.color ? ' active' : ''}" data-color="${c}" style="--cf-swatch-color:${c}" title="${c}" aria-label="颜色 ${c}"></button>`
+            ).join('');
+            inspectorEl.innerHTML = [
+                '<div class="cf-ms-insp">',
+                `<div class="cf-ms-ins-type">${meta.shape === 'prop' ? '物件' : 'Token'}</div>`,
+                '<div class="cf-ms-ins-row"><span class="cf-ms-k">位置</span><b>(' + Math.round(meta.x) + ', ' + Math.round(meta.y) + ') px</b></div>',
+                '<div class="cf-ms-label">颜色</div>',
+                `<div class="cf-ms-swatches" id="cfMsSwatches">${swatches}</div>`,
+                '<div class="cf-ms-ins-row"><span class="cf-ms-k">字形</span><input class="cf-ms-input" id="cfMsGlyph" maxlength="2" value="' + escapeHtml(meta.glyph) + '" /></div>',
+                '<div class="cf-ms-ins-row"><span class="cf-ms-k">大小</span><select class="cf-ms-input" id="cfMsSize">' +
+                    [1, 2, 3, 4].map((n) => `<option value="${n}"${n === meta.sizeCells ? ' selected' : ''}>${n} 格</option>`).join('') +
+                    '</select></div>',
+                `<div class="cf-ms-ins-row"><span class="cf-ms-k">图片</span><button class="cf-ms-btn mini" id="cfMsInsUpload">${meta.assetId ? '换图' : '上传'}</button>` +
+                    (meta.assetId ? '<button class="cf-ms-btn mini" id="cfMsInsClearImg">清除</button>' : '') + '</div>',
+                '<button class="cf-ms-btn mini danger block" id="cfMsInsDelete">删除这个标记</button>',
+                '</div>'
+            ].join('');
+            document.querySelectorAll<HTMLButtonElement>('#cfMsSwatches .cf-ms-swatch').forEach((btn) => {
+                btn.addEventListener('click', () => studio.setMarkerProps({ color: btn.dataset.color || '#d0564f' }));
+            });
+            const glyphInput = document.getElementById('cfMsGlyph') as HTMLInputElement | null;
+            if (glyphInput) {
+                glyphInput.addEventListener('change', () => studio.setMarkerProps({ glyph: glyphInput.value.trim().slice(0, 2) || '●' }));
+            }
+            const sizeSel = document.getElementById('cfMsSize') as HTMLSelectElement | null;
+            if (sizeSel) sizeSel.addEventListener('change', () => studio.setMarkerProps({ sizeCells: Number(sizeSel.value) || 1 }));
+            const insUpload = document.getElementById('cfMsInsUpload');
+            if (insUpload) insUpload.addEventListener('click', () => imgInput.click());
+            const insClear = document.getElementById('cfMsInsClearImg');
+            if (insClear) insClear.addEventListener('click', () => studio.clearSelectedImage());
+            const insDelete = document.getElementById('cfMsInsDelete');
+            if (insDelete) insDelete.addEventListener('click', () => studio.deleteSelected());
             return;
         }
         inspectorEl.innerHTML = [
@@ -471,7 +624,7 @@ export function mountMapStudio(): MapStudioPanelApi {
             return;
         }
         const key = ev.key.toLowerCase();
-        const map: Record<string, Tool> = { v: 'select', r: 'room', w: 'wall', d: 'door', x: 'erase' };
+        const map: Record<string, Tool> = { v: 'select', r: 'room', w: 'wall', d: 'door', x: 'erase', m: 'marker' };
         if (map[key] && !mod) {
             studio.setTool(map[key]);
         }
@@ -570,6 +723,10 @@ function downloadDataUrl(href: string, filename: string): void {
     a.click();
     a.remove();
 }
+
+
+
+
 
 
 

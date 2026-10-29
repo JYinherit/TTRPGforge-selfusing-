@@ -9,9 +9,12 @@ import { generateMap } from './generator';
 import type { GenOptions } from './generator';
 import { collectDoc, docToJSON, docToObjects, normalizeDoc } from './serialize';
 import { createEmptyDoc, nextId } from './types';
-import type { DoorMeta, MapDoc, Pt, RoomMeta, WallMeta } from './types';
+import type { AssetMeta, CorridorMeta, DoorMeta, MapDoc, MarkerMeta, Pt, RoomMeta, WallMeta } from './types';
 import {
     makeDoor,
+    makeMarker,
+    makeMarkerImage,
+    markerDiameter,
     makeRoom,
     makeRoomLabel,
     makeWall,
@@ -24,8 +27,9 @@ import {
     type FabricWithCf
 } from './objects';
 
-export type Tool = 'select' | 'room' | 'wall' | 'door' | 'erase';
+export type Tool = 'select' | 'room' | 'wall' | 'door' | 'erase' | 'marker';
 export type DoorKind = 'door' | 'window' | 'secret';
+export type MarkerShape = 'token' | 'prop';
 
 export interface StudioStatus {
     tool: Tool;
@@ -33,14 +37,26 @@ export interface StudioStatus {
     rooms: number;
     walls: number;
     doors: number;
+    markers: number;
     hint: string;
+}
+
+/** 组选（多选）摘要：UI 用它显示“已选 N 个”并提供批量操作。 */
+export interface MultiSelection {
+    count: number;
+    rooms: number;
+    walls: number;
+    doors: number;
+    corridors: number;
+    markers: number;
 }
 
 export interface StudioOptions {
     gridCanvas: HTMLCanvasElement;
     stage: HTMLElement;
     onStatus?: (s: StudioStatus) => void;
-    onSelection?: (meta: RoomMeta | WallMeta | DoorMeta | null) => void;
+    onSelection?: (meta: RoomMeta | WallMeta | DoorMeta | MarkerMeta | null) => void;
+    onMultiSelection?: (info: MultiSelection | null) => void;
     onHistory?: (undo: number, redo: number) => void;
 }
 
@@ -56,8 +72,14 @@ export class MapStudio {
     doc: MapDoc;
     tool: Tool = 'select';
     doorKind: DoorKind = 'door';
+    markerShape: MarkerShape = 'token';
+    private applyingGroup = false;
     zoom = 0.75;
     showGrid = true;
+
+    /** 图片资产（token / 物件 / 地板材质）。不进撤销快照：撤销只回文档，资产只在会话内常驻。 */
+    assets: AssetMeta[] = [];
+    private assetImages = new Map<string, HTMLImageElement>();
 
     private undoStack: string[] = [];
     private redoStack: string[] = [];
@@ -117,29 +139,33 @@ export class MapStudio {
         if (this.tool === 'room') hint = '在空白处按住拖出矩形（自动吸附网格）· Esc 回到选择';
         if (this.tool === 'wall') hint = '点击落点连墙 · 双击/Enter 结束 · Esc 取消';
         if (this.tool === 'door') hint = '点击墙上放门 · 再点可继续 · Esc 回到选择';
-        if (this.tool === 'erase') hint = '点击要删除的房间/墙/门';
+        if (this.tool === 'erase') hint = '点击要删除的房间/墙/门/标记';
+        if (this.tool === 'marker') hint = '点格子放标记 · 检查器里改颜色/字形/大小/图片 · Esc 回到选择';
         return {
             tool: this.tool,
             zoomPct: Math.round(this.zoom * 100),
             rooms: counts.rooms,
             walls: counts.walls,
             doors: counts.doors,
+            markers: counts.markers,
             hint
         };
     }
 
-    counts(): { rooms: number; walls: number; doors: number } {
+    counts(): { rooms: number; walls: number; doors: number; markers: number } {
         let rooms = 0;
         let walls = 0;
         let doors = 0;
+        let markers = 0;
         this.canvas.forEachObject((o: FObject) => {
             const meta = (o as FabricWithCf).cf;
             if (!meta) return;
             if (meta.type === 'room' && o.type === 'rect') rooms += 1;
             if (meta.type === 'wall') walls += 1;
             if (meta.type === 'door') doors += 1;
+            if (meta.type === 'marker') markers += 1;
         });
-        return { rooms, walls, doors };
+        return { rooms, walls, doors, markers };
     }
 
     private sizeCanvas(): void {
@@ -242,6 +268,17 @@ export class MapStudio {
         this.setTool('door');
     }
 
+    setMarkerShape(shape: MarkerShape): void {
+        this.markerShape = shape;
+        this.setTool('marker');
+    }
+
+    /** 当前选中的文档条目（组选时返回 null），UI 用它决定检查器显示什么。 */
+    activeMeta(): RoomMeta | WallMeta | DoorMeta | MarkerMeta | CorridorMeta | null {
+        const active = this.canvas.getActiveObject() as FabricWithCf | undefined;
+        return active && active.cf ? active.cf : null;
+    }
+
     toggleGrid(show: boolean): void {
         this.showGrid = show;
         this.paintGridLayer();
@@ -253,6 +290,7 @@ export class MapStudio {
         const d = normalizeDoc(doc) || createEmptyDoc();
         this.suppress = true;
         this.doc = d;
+        this.assets = d.assets && d.assets.length ? d.assets : this.assets;
         this.cancelPending();
         this.canvas.discardActiveObject();
         this.canvas.clear();
@@ -265,6 +303,7 @@ export class MapStudio {
             this.redoStack = [];
         }
         this.canvas.requestRenderAll();
+        this.applyMarkerImages();
         this.reportSelection();
         this.emit();
     }
@@ -275,21 +314,48 @@ export class MapStudio {
             return;
         }
         const url = this.doc.background;
+        const repeat = this.doc.backgroundRepeat === true;
         fabric.Image.fromURL(
             url,
             (img: FObject) => {
-                img.set({
-                    left: 0,
-                    top: 0,
-                    scaleX: this.doc.size.width / (img.width || this.doc.size.width),
-                    scaleY: this.doc.size.height / (img.height || this.doc.size.height),
-                    selectable: false,
-                    evented: false
-                });
-                this.canvas.setBackgroundImage(img as unknown as string, this.canvas.renderAll.bind(this.canvas));
+                if (repeat) {
+                    // 地板材质：按格尺寸平铺，玩家端与导出都跟格对齐
+                    const cell = this.doc.grid.cell;
+                    const iw = img.width || cell;
+                    const ih = img.height || cell;
+                    img.set({
+                        left: 0,
+                        top: 0,
+                        scaleX: cell / iw,
+                        scaleY: cell / ih,
+                        selectable: false,
+                        evented: false
+                    });
+                    this.canvas.setBackgroundImage(img as unknown as string, this.canvas.renderAll.bind(this.canvas), {
+                        repeat: 'repeat'
+                    } as unknown as undefined);
+                } else {
+                    img.set({
+                        left: 0,
+                        top: 0,
+                        scaleX: this.doc.size.width / (img.width || this.doc.size.width),
+                        scaleY: this.doc.size.height / (img.height || this.doc.size.height),
+                        selectable: false,
+                        evented: false
+                    });
+                    this.canvas.setBackgroundImage(img as unknown as string, this.canvas.renderAll.bind(this.canvas));
+                }
             },
             { crossOrigin: 'anonymous' }
         );
+    }
+
+    setBackgroundRepeat(repeat: boolean): void {
+        this.pushHistory();
+        this.doc.backgroundRepeat = repeat;
+        this.applyBackground();
+        this.canvas.requestRenderAll();
+        this.emit();
     }
 
     setBackground(dataUrl: string | null): void {
@@ -298,11 +364,29 @@ export class MapStudio {
         this.canvas.requestRenderAll();
     }
 
+    /** 上传底图/地板材质：进撤销栈、发状态、触发自动存档。 */
+    commitBackground(dataUrl: string, repeat = false): void {
+        this.pushHistory();
+        this.setBackground(dataUrl);
+        if (repeat) {
+            this.doc.backgroundRepeat = true;
+            this.applyBackground();
+        }
+        this.emit();
+    }
+
     /* ---------------- 历史 ---------------- */
+
+    /** 撤销快照：文档全量，但剥掉图片资产（资产以内容哈希常驻，撤销只需保住 assetId 引用）。 */
+    private snapshot(): string {
+        const doc = collectDoc(this.canvas, this.doc);
+        doc.assets = [];
+        return docToJSON(doc);
+    }
 
     pushHistory(): void {
         if (this.suppress) return;
-        const snapshot = docToJSON(collectDoc(this.canvas, this.doc));
+        const snapshot = this.snapshot();
         if (this.undoStack[this.undoStack.length - 1] === snapshot) return;
         this.undoStack.push(snapshot);
         if (this.undoStack.length > this.limit) this.undoStack.shift();
@@ -312,7 +396,7 @@ export class MapStudio {
 
     undo(): void {
         if (this.undoStack.length === 0) return;
-        const current = docToJSON(collectDoc(this.canvas, this.doc));
+        const current = this.snapshot();
         const prev = this.undoStack.pop() as string;
         this.redoStack.push(current);
         this.loadDoc(JSON.parse(prev) as MapDoc, false);
@@ -320,7 +404,7 @@ export class MapStudio {
 
     redo(): void {
         if (this.redoStack.length === 0) return;
-        const current = docToJSON(collectDoc(this.canvas, this.doc));
+        const current = this.snapshot();
         const next = this.redoStack.pop() as string;
         this.undoStack.push(current);
         this.loadDoc(JSON.parse(next) as MapDoc, false);
@@ -338,12 +422,30 @@ export class MapStudio {
         c.on('mouse:move', (opt: FIEvent) => this.onMouseMove(opt));
         c.on('mouse:up', () => this.onMouseUp());
         c.on('mouse:dblclick', (opt: FIEvent) => this.onDblClick(opt));
-        c.on('before:transform', () => this.pushHistory());
+        c.on('before:transform', () => {
+            this.captureMoveOrigins();
+            this.pushHistory();
+        });
         c.on('object:modified', (e: FIEvent) => this.onObjectModified({ target: e.target as unknown as FabricWithCf }));
         c.on('object:moving', (e: FIEvent) => this.onObjectMoving({ target: e.target as unknown as FabricWithCf }));
         c.on('selection:created', () => { this.tidyControls(); this.reportSelection(); });
         c.on('selection:updated', () => { this.tidyControls(); this.reportSelection(); });
         c.on('selection:cleared', () => this.reportSelection());
+    }
+
+    /** 组选拖动：记录按下与最后移动的指针位置（画布坐标），位移只认它。 */
+    private dragStart: Pt | null = null;
+    private dragLast: Pt | null = null;
+
+    private captureMoveOrigins(): void {
+        const active = this.canvas.getActiveObject() as unknown as FabricWithCf | undefined;
+        if (active && (active as unknown as { getObjects?: () => FabricWithCf[] }).getObjects) {
+            // 组选：指针位移由 mouse:down/move 记录，这里只清空旧值
+            this.dragLast = this.dragStart;
+        } else {
+            this.dragStart = null;
+            this.dragLast = null;
+        }
     }
 
     /** fabric v5 里 hasRotatingPoint 已失效，旋转柄拖不动只是噪声：统一收掉四角与旋转柄，只留四边中点。 */
@@ -362,6 +464,8 @@ export class MapStudio {
     }
 
     private onMouseDown(opt: { e: Event; target?: FObject }): void {
+        this.dragStart = this.canvas.getPointer(opt.e as unknown as MouseEvent);
+        this.dragLast = this.dragStart;
         if (this.tool === 'select') {
             if (opt.target) this.pushHistory();
             return;
@@ -407,6 +511,13 @@ export class MapStudio {
             this.placeDoor(p.x, p.y);
             return;
         }
+        if (this.tool === 'marker') {
+            if (opt.target) return;
+            const cell = this.doc.grid.cell;
+            const p = this.pointer(opt);
+            this.addMarker((Math.floor(p.x / cell) + 0.5) * cell, (Math.floor(p.y / cell) + 0.5) * cell);
+            return;
+        }
         if (this.tool === 'erase') {
             const target = opt.target as FabricWithCf | undefined;
             if (!target) return;
@@ -417,6 +528,7 @@ export class MapStudio {
     }
 
     private onMouseMove(opt: { e: Event }): void {
+        this.dragLast = this.canvas.getPointer(opt.e as unknown as MouseEvent);
         if (this.tool === 'room' && this.roomStart && this.previewRect) {
             const p = snapPoint(this.pointer(opt).x, this.pointer(opt).y, this.doc.grid);
             const left = Math.min(p.x, this.roomStart.x);
@@ -437,6 +549,18 @@ export class MapStudio {
     }
 
     private onMouseUp(): void {
+        if (this.tool === 'select') {
+            const active = this.canvas.getActiveObject() as FabricWithCf | undefined;
+            if (active && this.isMultiSelection(active) && this.dragStart && this.dragLast) {
+                const dx = this.dragLast.x - this.dragStart.x;
+                const dy = this.dragLast.y - this.dragStart.y;
+                if (Math.abs(dx) >= 1 || Math.abs(dy) >= 1) {
+                    this.applyGroupModify(active);
+                }
+            }
+            this.dragStart = null;
+            this.dragLast = null;
+        }
         if (this.tool === 'room' && this.previewRect && this.roomStart) {
             const rect = this.previewRect;
             const left = rect.left || 0;
@@ -475,6 +599,189 @@ export class MapStudio {
         }
     }
 
+    /**
+     * 组选拖动落点：房间/走廊/标记按格吸附，墙/门按整体位移改点再重建。
+     * fabric 移动的是视图，文档必须在这里写回，否则一刷新就回弹。
+     */
+    private applyGroupModify(sel: FabricWithCf): void {
+        if (this.applyingGroup) return;
+        this.applyingGroup = true;
+        const children = (sel as unknown as { getObjects: () => FabricWithCf[] }).getObjects();
+        const g = this.doc.grid;
+        // 指针位移最可信：fabric 组选里子对象坐标是相对选择框的，选择框自己也会被重算，
+        // 只有鼠标从按下到松开走了多少格是稳的。
+        const a = this.dragStart;
+        const b = this.dragLast;
+        const rawDx = a && b ? b.x - a.x : 0;
+        const rawDy = a && b ? b.y - a.y : 0;
+        const dx = snap(rawDx, g.cell);
+        const dy = snap(rawDy, g.cell);
+        for (const child of children) {
+            // 房间标签与房间共用 meta，重复累加会翻倍
+            if ((child as unknown as { cfLabel?: boolean }).cfLabel) continue;
+            const meta = child.cf;
+            if (!meta) continue;
+            if (meta.type === 'room') {
+                // 文档坐标即画布坐标（1:1）
+                meta.left = snap(meta.left + dx, g.cell);
+                meta.top = snap(meta.top + dy, g.cell);
+            } else if (meta.type === 'corridor') {
+                const cm = meta as unknown as CorridorMeta;
+                cm.left = snap(cm.left + dx, g.cell / 2);
+                cm.top = snap(cm.top + dy, g.cell / 2);
+            } else if (meta.type === 'marker') {
+                meta.x = snapHalf(meta.x + dx, g.cell);
+                meta.y = snapHalf(meta.y + dy, g.cell);
+            } else if (meta.type === 'wall') {
+                meta.points = meta.points.map((p) => snapPoint(p.x + dx, p.y + dy, g));
+            } else if (meta.type === 'door') {
+                meta.x = snapHalf(meta.x + dx, g.cell);
+                meta.y = snapHalf(meta.y + dy, g.cell);
+            }
+        }
+        this.dragStart = null;
+        this.dragLast = null;
+        this.canvas.discardActiveObject();
+        // 文档已改，画布整体按文档重建：不跟 fabric 的组坐标纠缠
+        try { this.rebuildCanvasFromDoc(); } finally { this.applyingGroup = false; }
+        this.reportSelection();
+        this.emit();
+    }
+
+    /** 清掉所有带 cf 的对象，按 this.doc 重建；组拖动/批量操作后用。 */
+    private rebuildCanvasFromDoc(): void {
+        const old = this.canvas.getObjects().filter((o) => (o as FabricWithCf).cf);
+        old.forEach((o) => this.canvas.remove(o));
+        docToObjects(this.doc).forEach((o) => this.canvas.add(o));
+        this.applyMarkerImages();
+        this.canvas.requestRenderAll();
+    }
+
+    /* ---------------- 标记 / 图片资产 ---------------- */
+
+    /** 把资产里的图片装到标记上：先用占位矢量图，图片解码完再无缝替换。 */
+    private applyMarkerImages(): void {
+        const markers = (this.doc.markers || []).slice();
+        if (markers.length === 0) return;
+        for (const meta of markers) {
+            if (!meta.assetId) continue;
+            const cached = this.assetImages.get(meta.assetId);
+            if (cached) {
+                this.swapMarkerImage(meta, cached);
+                continue;
+            }
+            const asset = this.assets.find((a) => a.id === meta.assetId);
+            if (!asset) continue;
+            const img = new Image();
+            img.onload = () => {
+                this.assetImages.set(asset.id, img);
+                this.swapMarkerImage(meta, img);
+                this.canvas.requestRenderAll();
+            };
+            img.src = asset.dataUrl;
+        }
+    }
+
+    private swapMarkerImage(meta: MarkerMeta, img: HTMLImageElement): void {
+        let target: FabricWithCf | null = null;
+        this.canvas.forEachObject((obj: FObject) => {
+            const o = obj as FabricWithCf;
+            if (o.cf && o.cf.type === 'marker' && o.cf.id === meta.id && !o.cfImageView) target = o;
+        });
+        if (!target) return;
+        const wasActive = (this.canvas.getActiveObject() as unknown as FabricWithCf) === target;
+        this.canvas.remove(target);
+        const next = makeMarkerImage(meta, this.doc.grid.cell, img);
+        this.canvas.add(next);
+        if (wasActive) this.canvas.setActiveObject(next);
+    }
+
+    addMarker(x: number, y: number, extra: Partial<MarkerMeta> = {}): MarkerMeta {
+        this.pushHistory();
+        const g = this.doc.grid;
+        const meta: MarkerMeta = {
+            id: nextId('mk'),
+            type: 'marker',
+            shape: this.markerShape,
+            x: snapHalf(x, g.cell),
+            y: snapHalf(y, g.cell),
+            sizeCells: 1,
+            color: '#d0564f',
+            glyph: this.markerShape === 'prop' ? '◆' : 'A',
+            ...extra
+        };
+        const obj = meta.assetId && this.assetImages.get(meta.assetId)
+            ? makeMarkerImage(meta, g.cell, this.assetImages.get(meta.assetId) as HTMLImageElement)
+            : makeMarker(meta, g.cell);
+        this.doc.markers = this.doc.markers || [];
+        this.doc.markers.push(meta);
+        this.canvas.add(obj);
+        this.canvas.setActiveObject(obj);
+        this.canvas.requestRenderAll();
+        this.reportSelection();
+        this.emit();
+        return meta;
+    }
+
+    /** 检查器改标记属性：直接重建对象，避免"颜色改了但存档没改"的分叉。 */
+    setMarkerProps(patch: Partial<MarkerMeta>): void {
+        const active = this.canvas.getActiveObject() as FabricWithCf | undefined;
+        const meta = active && active.cf;
+        if (!meta || meta.type !== 'marker') return;
+        this.pushHistory();
+        Object.assign(meta, patch);
+        if (patch.glyph) meta.glyph = String(patch.glyph).slice(0, 1);
+        this.rebuildObject(active as FabricWithCf);
+        this.emit();
+        this.reportSelection();
+    }
+
+    /** 注册一张图片资产（调用方负责先压到 256px / 300KB 以内），返回 assetId。 */
+    addAsset(dataUrl: string, kind: 'token' | 'prop' | 'texture' = 'token', w = 256, h = 256): string | null {
+        if (!dataUrl.startsWith('data:image/')) return null;
+        const hash = `${dataUrl.length}_${dataUrl.slice(-48)}`;
+        const existing = this.assets.find((a) => a.hash === hash);
+        if (existing) return existing.id;
+        if (this.assets.length >= 40) return null;
+        const id = nextId('asset');
+        const comma = dataUrl.indexOf(',');
+        const bytes = comma >= 0 ? Math.floor((dataUrl.length - comma - 1) * 0.75) : 0;
+        if (bytes > 300 * 1024) return null;
+        this.assets.push({ id, hash, kind, dataUrl, w, h, bytes });
+        const img = new Image();
+        img.onload = () => {
+            this.assetImages.set(id, img);
+            // 图片加载完成后，若已有标记引用这张资产，立即换成图片标记
+            const target = (this.doc.markers || []).find((m) => m.assetId === id);
+            if (target) this.swapMarkerImage(target, img);
+            this.canvas.requestRenderAll();
+            this.reportSelection();
+        };
+        img.src = dataUrl;
+        return id;
+    }
+
+    /** 当前选中标记换图；没有图片资产时创建。 */
+    attachImageToSelected(dataUrl: string, w = 256, h = 256): boolean {        const active = this.canvas.getActiveObject() as FabricWithCf | undefined;
+        const meta = active && active.cf;
+        if (!meta || meta.type !== 'marker') return false;
+        const id = this.addAsset(dataUrl, meta.shape === 'prop' ? 'prop' : 'token', w, h);
+        if (!id) return false;
+        this.setMarkerProps({ assetId: id });
+        return true;
+    }
+
+    clearSelectedImage(): void {
+        const active = this.canvas.getActiveObject() as FabricWithCf | undefined;
+        const meta = active && active.cf;
+        if (!meta || meta.type !== 'marker' || !meta.assetId) return;
+        this.pushHistory();
+        delete meta.assetId;
+        this.rebuildObject(active as FabricWithCf);
+        this.emit();
+        this.reportSelection();
+    }
+
     private onObjectMoving(e: { target: FabricWithCf }): void {
         const o = e.target;
         const meta = o.cf;
@@ -496,7 +803,10 @@ export class MapStudio {
 
     private onObjectModified(e: { target: FabricWithCf }): void {
         const o = e.target;
-        const meta = o.cf;
+        if (this.isMultiSelection(o)) {
+            this.applyGroupModify(o as FabricWithCf);
+            return;
+        }        const meta = o.cf;
         if (!meta) return;
         const g = this.doc.grid;
         if (meta.type === 'room') {
@@ -531,6 +841,17 @@ export class MapStudio {
             return;
         }
         const anchor = o.cfAnchor;
+        if (meta.type === 'marker') {
+            const w = (o.width || 0) * (o.scaleX || 1);
+            const h = (o.height || 0) * (o.scaleY || 1);
+            const sizeCells = Math.max(1, Math.min(4, Math.round(Math.max(w, h) / g.cell)));
+            meta.sizeCells = sizeCells;
+            meta.x = snapHalf((o.left || 0) + w / 2, g.cell);
+            meta.y = snapHalf((o.top || 0) + h / 2, g.cell);
+            this.rebuildObject(o);
+            this.emit();
+            return;
+        }
         if (!anchor) return;
         const dx = (o.left || 0) - anchor.left;
         const dy = (o.top || 0) - anchor.top;
@@ -572,6 +893,10 @@ export class MapStudio {
         let next: FabricWithCf | null = null;
         if (meta.type === 'wall') next = makeWall(meta);
         if (meta.type === 'door') next = makeDoor(meta);
+        if (meta.type === 'marker') {
+            const img = meta.assetId ? this.assetImages.get(meta.assetId) : undefined;
+            next = img ? makeMarkerImage(meta, this.doc.grid.cell, img) : makeMarker(meta, this.doc.grid.cell);
+        }
         if (!next) return;
         this.canvas.add(next);
         this.canvas.setActiveObject(next);
@@ -731,9 +1056,38 @@ export class MapStudio {
 
     /* ---------------- 选择 / 编辑 ---------------- */
 
+    /** 只有 ActiveSelection 才算多选；marker 本身是 fabric.Group，不能按 getObjects 判断。 */
+    private isMultiSelection(o: FObject | undefined): boolean {
+        if (!o) return false;
+        const t = (o as unknown as { type?: string }).type;
+        return t === 'activeSelection' || t === 'ActiveSelection';
+    }
     private reportSelection(): void {
         const active = this.canvas.getActiveObject() as FabricWithCf | undefined;
-        const meta = active && active.cf ? active.cf : null;
+        if (!active) {
+            if (this.opts.onSelection) this.opts.onSelection(null);
+            if (this.opts.onMultiSelection) this.opts.onMultiSelection(null);
+            return;
+        }
+        if (this.isMultiSelection(active)) {
+            const children = (active as unknown as { getObjects: () => FabricWithCf[] }).getObjects();
+            const info: MultiSelection = { count: 0, rooms: 0, walls: 0, doors: 0, corridors: 0, markers: 0 };
+            for (const child of children) {
+                const m = child.cf;
+                if (!m) continue;
+                info.count += 1;
+                if (m.type === 'room') info.rooms += 1;
+                else if (m.type === 'wall') info.walls += 1;
+                else if (m.type === 'door') info.doors += 1;
+                else if (m.type === 'corridor') info.corridors += 1;
+                else if (m.type === 'marker') info.markers += 1;
+            }
+            if (this.opts.onSelection) this.opts.onSelection(null);
+            if (this.opts.onMultiSelection) this.opts.onMultiSelection(info);
+            return;
+        }
+        const meta = active.cf ? active.cf : null;
+        if (this.opts.onMultiSelection) this.opts.onMultiSelection(null);
         if (!this.opts.onSelection) return;
         if (meta && meta.type === 'corridor') this.opts.onSelection(null);
         else this.opts.onSelection(meta);
@@ -816,7 +1170,18 @@ export class MapStudio {
     deleteSelected(): void {
         const active = this.canvas.getActiveObject();
         if (!active) return;
+        const childrenOf = (active as unknown as { getObjects?: () => FabricWithCf[] }).getObjects;
         this.pushHistory();
+        if (typeof childrenOf === 'function') {
+            // 组选：先把选择拆掉再逐个删（selection 里删子对象会让 fabric 状态混乱）
+            const objs = childrenOf.call(active);
+            this.canvas.discardActiveObject();
+            objs.forEach((o) => this.removeObject(o));
+            this.canvas.requestRenderAll();
+            this.reportSelection();
+            this.emit();
+            return;
+        }
         this.removeObject(active as FabricWithCf);
         this.emit();
     }
@@ -862,7 +1227,10 @@ export class MapStudio {
     }
 
     collect(): MapDoc {
-        return collectDoc(this.canvas, this.doc);
+        const doc = collectDoc(this.canvas, this.doc);
+        doc.assets = this.assets.slice();
+        doc.markers = doc.markers || [];
+        return doc;
     }
 
     toJSON(): string {
@@ -955,3 +1323,13 @@ function loadImage(src: string): Promise<HTMLImageElement> {
         img.src = src;
     });
 }
+
+
+
+
+
+
+
+
+
+
