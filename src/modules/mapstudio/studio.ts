@@ -474,6 +474,11 @@ export class MapStudio {
     /** 组选拖动：记录按下与最后移动的指针位置（画布坐标），位移只认它。 */
     private dragStart: Pt | null = null;
     private dragLast: Pt | null = null;
+    /**
+     * 按下时是否命中对象。框选（在空白处拖）也会在松手时得到一个 ActiveSelection，
+     * 如果只看"是否多选"就会把框选当成拖拽——一框选，选中的对象就被整体挪走一截。
+     */
+    private dragStartedOnTarget = false;
 
     private captureMoveOrigins(): void {
         const active = this.canvas.getActiveObject() as unknown as FabricWithCf | undefined;
@@ -504,6 +509,7 @@ export class MapStudio {
     private onMouseDown(opt: { e: Event; target?: FObject }): void {
         this.dragStart = this.canvas.getPointer(opt.e as unknown as MouseEvent);
         this.dragLast = this.dragStart;
+        this.dragStartedOnTarget = Boolean(opt.target);
         if (this.tool === 'select') {
             if (opt.target) this.pushHistory();
             return;
@@ -589,10 +595,13 @@ export class MapStudio {
     private onMouseUp(): void {
         if (this.tool === 'select') {
             const active = this.canvas.getActiveObject() as FabricWithCf | undefined;
-            if (active && this.isMultiSelection(active) && this.dragStart && this.dragLast) {
-                const dx = this.dragLast.x - this.dragStart.x;
-                const dy = this.dragLast.y - this.dragStart.y;
-                if (Math.abs(dx) >= 1 || Math.abs(dy) >= 1) {
+            const fromTarget = this.dragStartedOnTarget;
+            this.dragStartedOnTarget = false;
+            if (active && fromTarget && this.isMultiSelection(active) && this.dragStart && this.dragLast) {
+                const dx = snap(this.dragLast.x - this.dragStart.x, this.doc.grid.cell);
+                const dy = snap(this.dragLast.y - this.dragStart.y, this.doc.grid.cell);
+                // 位移不足半格：fabric 已经把组跟着手动了，这里不该再重建（否则一次单击也会整组弹一下）
+                if (dx !== 0 || dy !== 0) {
                     this.applyGroupModify(active);
                 }
             }
@@ -859,7 +868,8 @@ export class MapStudio {
         if (this.isMultiSelection(o)) {
             this.applyGroupModify(o as FabricWithCf);
             return;
-        }        const meta = o.cf;
+        }
+        const meta = o.cf;
         if (!meta) return;
         const g = this.doc.grid;
         if (meta.type === 'room') {
