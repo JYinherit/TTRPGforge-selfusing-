@@ -56,9 +56,28 @@ function copyDir(src, dst) {
 copyDir(legacyDir, dist);
 
 // 自检：入口文件必须存在
-const required = ['index.html', 'clueforge-studio.js', 'tokens.css', 'style.css', 'app.js', 'project.js', 'ui.js', 'map.js'];
+const required = [
+    'index.html', 'clueforge-studio.js', 'tokens.css', 'style.css', 'app.js', 'project.js', 'ui.js', 'map.js',
+    // 皮肤系统：主题包是"可选",但漏拷会变成静默失败（构建绿、双击版缺功能）
+    'skin.css', 'skins/registry.js', 'skins/vermilion.css', 'skins/ritual.css', 'skins/coldlight.css'
+];
 const missing = required.filter((f) => !existsSync(path.join(dist, f)));
 if (missing.length) fail(`产物缺文件：${missing.join(', ')}`);
+
+// 皮肤包门禁：只允许 --* 自定义属性 + color-scheme，禁止选择器规则（否则会腐化成第二套 style.css）
+console.log('▸ 皮肤包门禁 …');
+const skinDir = path.join(root, 'ClueForge', 'skins');
+for (const name of readdirSync(skinDir)) {
+    if (!name.endsWith('.css')) continue;
+    const raw = readFileSafe(path.join(skinDir, name));
+    const body = raw.replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const line of body.split(/\r?\n/)) {
+        const t = line.trim();
+        if (!t || t === '}' || /^\[data-cf-skin="[a-z0-9-]{1,24}"\]\s*\{$/.test(t)) continue;
+        if (t.startsWith('--') || t === 'color-scheme: dark;' || t === 'color-scheme: light;') continue;
+        fail(`皮肤包 ${name} 出现非令牌声明：${t}`);
+    }
+}
 
 const idx = readFileSafe(path.join(dist, 'index.html'));
 if (!idx.includes('clueforge-studio.js')) fail('dist/index.html 没有引用 clueforge-studio.js');

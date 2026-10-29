@@ -1,0 +1,124 @@
+/* 金石仪轨 · Ritual of Bronze & Gold — 东方悬疑 / 志怪 / 民国（暖黑 + 哑金） */
+[data-cf-skin="ritual"] {
+    color-scheme: dark;
+
+    /* L1 外壳 */
+    --bg-deep: #12110d;
+    --bg-panel: rgba(27, 26, 20, 0.94);
+    --bg-glass: rgba(255, 246, 220, 0.05);
+    --bg-glass-hv: rgba(255, 246, 220, 0.09);
+    --border: rgba(185, 154, 91, 0.18);
+    --accent: #8f3526;
+    --accent-glow: rgba(143, 53, 38, 0.42);
+    --gold: #b99a5b;
+    --text-primary: #efe6d2;
+    --text-muted: #a29880;
+    --text-dim: #7f7767;
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 2px;
+
+    --cf-canvas-bg: #12110d;
+    --cf-surface: rgba(255, 246, 220, 0.05);
+    --cf-surface-2: rgba(255, 246, 220, 0.028);
+    --cf-line: rgba(185, 154, 91, 0.22);
+    --cf-line-soft: rgba(185, 154, 91, 0.12);
+    --cf-text-strong: #efe6d2;
+    --cf-dim: #a29880;
+    --cf-dim-2: #8f866f;
+    --cf-dim-3: #6e684f;
+    --state-active: #b99a5b;
+    --state-active-bg: rgba(185, 154, 91, 0.12);
+    --state-active-line: rgba(185, 154, 91, 0.6);
+    --state-active-soft: rgba(185, 154, 91, 0.1);
+    --cf-stage-bg: radial-gradient(ellipse at center, #1d1a12 0%, #100f0b 100%);
+
+    /* L2 纸张（宣 / 绢 / 拓） */
+    --cf-paper: #e6dac0;
+    --cf-paper-ink: #241e14;
+    --cf-paper-ink-dim: #6a5b3e;
+    --cf-paper-mark: #8f3526;
+
+    /* L3 墨（刻线，比朱笔更工整） */
+    --cf-cv-ink: #ddd2b6;
+    --cf-cv-ink-dim: #8f866f;
+    --cf-cv-room-fill: #7d6a4a;
+    --cf-cv-room-fill-a: 0.18;
+    --cf-cv-room-stroke: #b99a5b;
+    --cf-cv-room-text: #efe6d2;
+    --cf-cv-corner: #2a2418;
+    --cf-cv-door: #c4b48c;
+    --cf-cv-corridor-fill: #b99a5b;
+    --cf-cv-corridor-fill-a: 0.07;
+    --cf-cv-corridor-stroke: #b99a5b;
+    --cf-cv-corridor-stroke-a: 0.36;
+    --cf-cv-grid-major: #b99a5b;
+    --cf-cv-grid-major-a: 0.18;
+    --cf-cv-grid-minor: #b99a5b;
+    --cf-cv-grid-minor-a: 0.07;
+    --cf-cv-marker-1: #a6402f;
+    --cf-cv-marker-2: #b99a5b;
+    --cf-cv-marker-3: #6e8f7e;
+    --cf-cv-marker-4: #2c4e63;
+    --cf-cv-marker-5: #7a6a9a;
+    --cf-cv-marker-6: #b8ae95;
+
+    /* 字体：楷体只用于标题/印记 */
+    --cf-font-display: KaiTi, "Kaiti SC", STKaiti, "Songti SC", SimSun, serif;
+    --cf-font-num: "Palatino Linotype", "Book Antiqua", Georgia, "Times New Roman", serif;
+    /* —— 由 style.css 迁移的字面量系列，按主题重算 —— */
+    --cf-gold-8: color-mix(in srgb, var(--gold) 8%, transparent);
+    --cf-gold-10: color-mix(in srgb, var(--gold) 10%, transparent);
+    --cf-gold-15: color-mix(in srgb, var(--gold) 15%, transparent);
+    --cf-gold-20: color-mix(in srgb, var(--gold) 20%, transparent);
+    --cf-gold-25: color-mix(in srgb, var(--gold) 25%, transparent);
+    --cf-gold-30: color-mix(in srgb, var(--gold) 30%, transparent);
+    --cf-gold-35: color-mix(in srgb, var(--gold) 35%, transparent);
+    --cf-gold-40: color-mix(in srgb, var(--gold) 40%, transparent);
+    --cf-gold-50: color-mix(in srgb, var(--gold) 50%, transparent);
+    --cf-gold-60: color-mix(in srgb, var(--gold) 60%, transparent);
+    --cf-accent-12: color-mix(in srgb, var(--accent) 12%, transparent);
+    --cf-accent-18: color-mix(in srgb, var(--accent) 18%, transparent);
+    --cf-accent-20: color-mix(in srgb, var(--accent) 20%, transparent);
+    --cf-accent-25: color-mix(in srgb, var(--accent) 25%, transparent);
+    --cf-accent-30: color-mix(in srgb, var(--accent) 30%, transparent);
+    --cf-accent-35: color-mix(in srgb, var(--accent) 35%, transparent);
+    --cf-accent-45: color-mix(in srgb, var(--accent) 45%, transparent);
+    --cf-accent-50: color-mix(in srgb, var(--accent) 50%, transparent);
+    --cf-accent-60: color-mix(in srgb, var(--accent) 60%, transparent);
+    --cf-w-12: color-mix(in srgb, var(--text-primary) 1.2%, transparent);
+    --cf-w-20: color-mix(in srgb, var(--text-primary) 2%, transparent);
+    --cf-w-30: color-mix(in srgb, var(--text-primary) 3%, transparent);
+    --cf-w-40: color-mix(in srgb, var(--text-primary) 4%, transparent);
+    --cf-w-50: color-mix(in srgb, var(--text-primary) 5%, transparent);
+    --cf-w-60: color-mix(in srgb, var(--text-primary) 6%, transparent);
+    --cf-w-80: color-mix(in srgb, var(--text-primary) 8%, transparent);
+    --cf-w-100: color-mix(in srgb, var(--text-primary) 10%, transparent);
+    --cf-w-120: color-mix(in srgb, var(--text-primary) 12%, transparent);
+    --cf-w-150: color-mix(in srgb, var(--text-primary) 15%, transparent);
+    --cf-w-180: color-mix(in srgb, var(--text-primary) 18%, transparent);
+    --cf-w-220: color-mix(in srgb, var(--text-primary) 22%, transparent);
+    --cf-chip: color-mix(in srgb, var(--text-primary) 4%, transparent);
+    --cf-surface-deep: color-mix(in srgb, var(--bg-deep) 96%, transparent);
+    --cf-surface-bar: color-mix(in srgb, var(--bg-deep) 90%, transparent);
+    --cf-cork: #6b5334;
+    --cf-cork-noir: #171410;
+    --cf-cork-chinese: #2a1b10;
+    --cf-cork-federal: #d8cfbe;
+    --cf-cream: color-mix(in srgb, var(--text-primary) 86%, var(--gold));
+    --cf-brass-dim: color-mix(in srgb, var(--gold) 52%, #000);
+
+    /* —— 表面/强调色：按主题重算（theme-surfaces.mjs 维护） —— */
+    --cf-panel-40: color-mix(in srgb, var(--bg-deep) 40%, transparent);
+    --cf-panel-60: color-mix(in srgb, var(--bg-deep) 60%, transparent);
+    --cf-panel-70: color-mix(in srgb, var(--bg-deep) 72%, transparent);
+    --cf-panel-92: color-mix(in srgb, var(--bg-deep) 94%, transparent);
+    --cf-panel-95: color-mix(in srgb, var(--bg-deep) 96%, transparent);
+    --cf-accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
+    --cf-accent-line: color-mix(in srgb, var(--accent) 52%, transparent);
+    --cf-accent-glow: color-mix(in srgb, var(--accent) 24%, transparent);
+    --cf-accent-text: color-mix(in srgb, var(--accent) 64%, #fff);
+}
+
+
+

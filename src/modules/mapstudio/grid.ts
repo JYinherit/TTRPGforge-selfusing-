@@ -4,6 +4,7 @@
    所有几何吸附 / 程序化生成 / 尺寸换算都走这里，保证口径唯一。
    ================================================================ */
 import type { GridSpec, Pt } from './types';
+import { pal } from './theme';
 
 export function clamp(v: number, min: number, max: number): number {
     return v < min ? min : v > max ? max : v;
@@ -61,7 +62,7 @@ export function paintGrid(
         const i = startCol + n;
         const x = grid.originX * zoom + i * cell;
         if (x > width) break;
-        ctx.strokeStyle = i % 5 === 0 ? 'rgba(201,168,76,0.24)' : 'rgba(201,168,76,0.10)';
+        ctx.strokeStyle = i % 5 === 0 ? pal().gridMajor : pal().gridMinor;
         ctx.beginPath();
         ctx.moveTo(Math.round(x) + 0.5, 0);
         ctx.lineTo(Math.round(x) + 0.5, height);
@@ -73,7 +74,7 @@ export function paintGrid(
         const j = startRow + n;
         const y = grid.originY * zoom + j * cell;
         if (y > height) break;
-        ctx.strokeStyle = j % 5 === 0 ? 'rgba(201,168,76,0.24)' : 'rgba(201,168,76,0.10)';
+        ctx.strokeStyle = j % 5 === 0 ? pal().gridMajor : pal().gridMinor;
         ctx.beginPath();
         ctx.moveTo(0, Math.round(y) + 0.5);
         ctx.lineTo(width, Math.round(y) + 0.5);
@@ -81,3 +82,4 @@ export function paintGrid(
     }
     ctx.restore();
 }
+

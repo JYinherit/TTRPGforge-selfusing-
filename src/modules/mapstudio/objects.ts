@@ -6,10 +6,12 @@
 import { fabric } from '../../vendor';
 import type { fabric as FabricNs } from 'fabric';
 import type { CorridorMeta, DoorMeta, MarkerMeta, RoomMeta, WallMeta } from './types';
+import { displayMarkerColor, hexA as themeHexA, pal } from './theme';
 
-export const INK = '#cfc7b8';
-export const INK_DIM = '#8b8577';
-export const GOLD = '#c9a84c';
+/** 画布配色统一走主题（换肤时由 studio.refreshTheme 重建对象） */
+export const ink = (): string => pal().ink;
+export const inkDim = (): string => pal().inkDim;
+export const gold = (): string => pal().corner;
 
 /** fabric 5 的对象类型（fabric 包本身不带 d.ts，走 @types/fabric 的命名空间） */
 export type FObject = FabricNs.Object;
@@ -40,17 +42,17 @@ export function makeRoom(room: RoomMeta): FabricWithCf {
         top: room.top,
         width: room.width,
         height: room.height,
-        fill: 'rgba(122,120,170,0.14)',
-        stroke: '#9a95b8',
+        fill: pal().roomFill,
+        stroke: pal().roomStroke,
         strokeWidth: 1.5,
         strokeUniform: true,
         hasRotatingPoint: false,
         lockRotation: true,
-        cornerColor: GOLD,
-        cornerStrokeColor: '#2a2a3a',
+        cornerColor: gold(),
+        cornerStrokeColor: pal().corner,
         cornerSize: 9,
         transparentCorners: false,
-        borderColor: GOLD,
+        borderColor: gold(),
         padding: 2
     }) as FabricWithCf;
     rect.cf = room;
@@ -66,7 +68,7 @@ export function makeRoomLabel(room: RoomMeta): FabricWithCf {
         fontWeight: '500',
         lineHeight: 1.15,
         fontFamily: 'Inter, "Segoe UI", "Microsoft YaHei", sans-serif',
-        fill: '#d8d0c0',
+        fill: pal().roomText,
         textAlign: 'center',
         originX: 'center',
         originY: 'center',
@@ -84,7 +86,7 @@ export function makeWall(wall: WallMeta): FabricWithCf {
         wall.points.map((p) => ({ x: p.x, y: p.y })),
         {
             fill: '',
-            stroke: INK,
+            stroke: ink(),
             strokeWidth: 3,
             strokeLineJoin: 'round',
             strokeLineCap: 'round',
@@ -147,7 +149,7 @@ export function doorPathString(meta: DoorMeta): string {
 export function makeDoor(meta: DoorMeta): FabricWithCf {
     const path = new fabric.Path(doorPathString(meta), {
         fill: '',
-        stroke: meta.kind === 'secret' ? INK_DIM : '#b8b2a2',
+        stroke: meta.kind === 'secret' ? inkDim() : pal().door,
         strokeWidth: meta.kind === 'window' ? 1.4 : 1.8,
         strokeUniform: true,
         strokeDashArray: meta.kind === 'secret' ? [6, 4] : null,
@@ -170,8 +172,8 @@ export function makeCorridor(meta: CorridorMeta): FabricWithCf {
         top: meta.top,
         width: meta.width,
         height: meta.height,
-        fill: 'rgba(201,168,76,0.06)',
-        stroke: 'rgba(201,168,76,0.40)',
+        fill: pal().corrFill,
+        stroke: pal().corrStroke,
         strokeWidth: 1,
         strokeDashArray: [6, 6],
         // 走廊也是地图元素：能选中才能改、能删（否则只能整图重来）
@@ -204,9 +206,10 @@ export function markerDiameter(meta: MarkerMeta, cell: number): number {
 export function makeMarker(meta: MarkerMeta, cell: number): FabricWithCf {
     const d = markerDiameter(meta, cell);
     const r = d / 2;
+    const shown = displayMarkerColor(meta.color, MARKER_COLORS);
     const common = {
-        fill: hexA(meta.color, 0.3),
-        stroke: meta.color,
+        fill: hexA(shown, 0.3),
+        stroke: shown,
         strokeWidth: 2,
         strokeUniform: true
     };
@@ -218,7 +221,7 @@ export function makeMarker(meta: MarkerMeta, cell: number): FabricWithCf {
         fontSize: Math.max(10, Math.round(d * 0.46)),
         fontWeight: '700',
         fontFamily: 'Inter, "Segoe UI", "Microsoft YaHei", sans-serif',
-        fill: meta.color,
+        fill: shown,
         originX: 'center',
         originY: 'center',
         left: r,
@@ -233,11 +236,11 @@ export function makeMarker(meta: MarkerMeta, cell: number): FabricWithCf {
         originY: 'top',
         hasRotatingPoint: false,
         lockRotation: true,
-        cornerColor: GOLD,
-        cornerStrokeColor: '#2a2a3a',
+        cornerColor: gold(),
+        cornerStrokeColor: pal().corner,
         cornerSize: 9,
         transparentCorners: false,
-        borderColor: GOLD
+        borderColor: gold()
     }) as FabricWithCf;
     group.cf = meta;
     group.cfAnchor = { left: group.left || 0, top: group.top || 0 };
@@ -257,11 +260,11 @@ export function makeMarkerImage(meta: MarkerMeta, cell: number, img: HTMLImageEl
         scaleY: d / (img.naturalHeight || img.height || d),
         hasRotatingPoint: false,
         lockRotation: true,
-        cornerColor: GOLD,
-        cornerStrokeColor: '#2a2a3a',
+        cornerColor: gold(),
+        cornerStrokeColor: pal().corner,
         cornerSize: 9,
         transparentCorners: false,
-        borderColor: GOLD,
+        borderColor: gold(),
         clipPath: new fabric.Circle({
             radius: r / (d / (img.naturalWidth || img.width || d)),
             originX: 'center',
@@ -285,3 +288,6 @@ function hexA(hex: string, alpha: number): string {
     const b = n & 255;
     return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
 }
+
+
+

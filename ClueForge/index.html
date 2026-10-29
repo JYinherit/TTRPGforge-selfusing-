@@ -8,6 +8,23 @@
     <meta name="description" content="面向跑团KP/主持人的沉浸式图片编辑与批注工具" />
     <link rel="stylesheet" href="tokens.css" />
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="skin.css" />
+    <!-- 首屏皮肤引导：必须在样式表之后、首绘之前同步执行，避免换肤时闪一下 -->
+    <script>
+        (function () {
+            try {
+                var s = localStorage.getItem('cf.skin');
+                if (!s || s === 'default') return;
+                if (!/^[a-z0-9-]{1,24}$/.test(s)) return;
+                document.documentElement.setAttribute('data-cf-skin', s);
+                var l = document.createElement('link');
+                l.rel = 'stylesheet';
+                l.href = 'skins/' + s + '.css';
+                l.setAttribute('data-cf-skin-link', '');
+                document.head.appendChild(l);
+            } catch (e) { /* 存储被禁时退回默认皮肤 */ }
+        })();
+    </script>
     <!-- fabric / roughjs / marked 已由本地打包产物 clueforge-studio.js 注入，不再依赖 CDN -->
 </head>
 
@@ -539,6 +556,7 @@
     <!-- ===== 模块化脚本（按依赖顺序加载） ===== -->
     <!-- ① 本地打包产物：fabric/roughjs/marked + 地图工坊；必须先于老模块执行，负责回填全局依赖 -->
     <script src="clueforge-studio.js"></script>
+    <script src="skins/registry.js"></script>
     <script src="eventbus.js"></script>
     <script src="ui.js"></script>
     <script src="map-themes.js"></script>

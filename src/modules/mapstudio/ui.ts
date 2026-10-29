@@ -6,6 +6,7 @@
 import { lengthToMeters } from './grid';
 import { ASSET_LIMITS, EXPORT_MAX_PIXELS } from './limits';
 import { MARKER_COLORS } from './objects';
+import { pal } from './theme';
 import { validateMapDoc } from './serialize';
 import { buildShareHtml, estimateShareBytes } from './share/build';
 import { MapStudio } from './studio';
@@ -579,8 +580,9 @@ export function mountMapStudio(): MapStudioPanelApi {
             return;
         }
         if (meta.type === 'marker') {
-            const swatches = MARKER_COLORS.map((c) =>
-                `<button class="cf-ms-swatch${c === meta.color ? ' active' : ''}" data-color="${c}" style="--cf-swatch-color:${c}" title="${c}" aria-label="颜色 ${c}"></button>`
+            const shown = pal().markerColors;
+            const swatches = MARKER_COLORS.map((c, i) =>
+                `<button class="cf-ms-swatch${c === meta.color ? ' active' : ''}" data-color="${c}" style="--cf-swatch-color:${shown[i] || c}" title="${c}" aria-label="颜色 ${c}"></button>`
             ).join('');
             inspectorEl.innerHTML = [
                 '<div class="cf-ms-insp">',
@@ -775,6 +777,7 @@ function downloadDataUrl(href: string, filename: string): void {
     a.click();
     a.remove();
 }
+
 
 
 

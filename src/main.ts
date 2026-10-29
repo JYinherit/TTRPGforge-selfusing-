@@ -76,6 +76,14 @@ function boot(): void {
             }
         };
         console.info('[clueforge] 地图工坊就绪 · v0.6.0');
+        // 换肤：画布颜色是 JS 读令牌拿到的，必须显式重建一次对象
+        window.addEventListener('cf:skin-changed', () => {
+            try {
+                api.studio.refreshTheme();
+            } catch (e) {
+                console.warn('[clueforge] 换肤后画布重建失败', e);
+            }
+        });
     } catch (e) {
         console.error('[clueforge] 地图工坊初始化失败', e);
     }

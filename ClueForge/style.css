@@ -8,21 +8,21 @@
 /* ---- CSS 变量 ---- */
 :root {
     --bg-deep: #0d0d1a;
-    --bg-panel: rgba(18, 18, 35, 0.92);
-    --bg-glass: rgba(255, 255, 255, 0.06);
+    --bg-panel: var(--cf-panel-92);
+    --bg-glass: var(--cf-w-60);
     --bg-glass-hv: rgba(255, 255, 255, 0.11);
     --border: rgba(255, 255, 255, 0.10);
     --accent: #b83232;
     --accent-glow: rgba(184, 50, 50, 0.4);
     --gold: #c9a84c;
-    --text-primary: #e8e0d0;
+    --text-primary: var(--cf-text-strong);
     --text-muted: #8a8090;
     --text-dim: #5a5060;
     --radius-sm: 6px;
     --radius-md: 10px;
     --radius-lg: 16px;
-    --shadow-toolbar: 0 4px 24px rgba(0, 0, 0, 0.6);
-    --shadow-btn: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-toolbar: 0 4px 24px var(--cf-b-60);
+    --shadow-btn: 0 2px 8px var(--cf-b-40);
     --transition: 0.18s ease;
 }
 
@@ -148,10 +148,10 @@ body {
 }
 
 .tool-btn.active {
-    background: rgba(184, 50, 50, 0.18);
+    background: var(--cf-accent-18);
     color: #e05050;
-    border-color: rgba(184, 50, 50, 0.45);
-    box-shadow: 0 0 10px rgba(184, 50, 50, 0.2);
+    border-color: var(--cf-accent-45);
+    box-shadow: 0 0 10px var(--cf-accent-20);
 }
 
 .tool-btn.small {
@@ -217,7 +217,7 @@ body {
     width: 60px;
     height: 4px;
     border-radius: 2px;
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--cf-w-150);
     outline: none;
     cursor: pointer;
 }
@@ -265,8 +265,8 @@ body {
 }
 
 .export-btn:hover {
-    background: rgba(201, 168, 76, 0.25);
-    box-shadow: 0 0 12px rgba(201, 168, 76, 0.3);
+    background: var(--cf-gold-25);
+    box-shadow: 0 0 12px var(--cf-gold-30);
 }
 
 .save-btn {
@@ -287,7 +287,7 @@ body {
     flex: 1;
     position: relative;
     overflow: hidden;
-    background: radial-gradient(ellipse at center, #1c1c30 0%, #0d0d1a 100%);
+    background: radial-gradient(ellipse at center, #1c1c30 0%, var(--bg-deep) 100%);
 }
 
 /* 装饰纹理叠层 */
@@ -296,8 +296,8 @@ body {
     position: absolute;
     inset: 0;
     background-image:
-        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255, 255, 255, 0.012) 40px, rgba(255, 255, 255, 0.012) 41px),
-        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255, 255, 255, 0.012) 40px, rgba(255, 255, 255, 0.012) 41px);
+        repeating-linear-gradient(0deg, transparent, transparent 40px, var(--cf-w-12) 40px, var(--cf-w-12) 41px),
+        repeating-linear-gradient(90deg, transparent, transparent 40px, var(--cf-w-12) 40px, var(--cf-w-12) 41px);
     pointer-events: none;
     z-index: 0;
 }
@@ -330,8 +330,8 @@ body {
     align-items: center;
     gap: 12px;
     padding: 48px 60px;
-    background: rgba(18, 18, 35, 0.7);
-    border: 2px dashed rgba(201, 168, 76, 0.35);
+    background: var(--cf-panel-70);
+    border: 2px dashed var(--cf-gold-35);
     border-radius: var(--radius-lg);
     backdrop-filter: blur(8px);
     pointer-events: all;
@@ -374,7 +374,7 @@ body {
     gap: 6px;
     padding: 8px 20px;
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(201, 168, 76, 0.5);
+    border: 1px solid var(--cf-gold-50);
     color: var(--gold);
     font-size: 13px;
     cursor: pointer;
@@ -383,7 +383,7 @@ body {
 }
 
 .upload-label:hover {
-    background: rgba(201, 168, 76, 0.15);
+    background: var(--cf-gold-15);
 }
 
 /* ---- Drag Over state ---- */
@@ -405,7 +405,7 @@ body {
 
     to {
         opacity: 1;
-        box-shadow: inset 0 0 30px rgba(201, 168, 76, 0.1);
+        box-shadow: inset 0 0 30px var(--cf-gold-10);
     }
 }
 
@@ -454,10 +454,10 @@ body {
     right: 24px;
     width: 220px;
     background: rgba(12, 10, 22, 0.88);
-    border: 1px solid rgba(201, 168, 76, 0.35);
+    border: 1px solid var(--cf-gold-35);
     border-radius: var(--radius-md);
     backdrop-filter: blur(12px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 32px var(--cf-b-50);
     z-index: 50;
     display: none;
     flex-direction: column;
@@ -475,8 +475,8 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 8px 10px 6px;
-    background: rgba(201, 168, 76, 0.08);
-    border-bottom: 1px solid rgba(201, 168, 76, 0.2);
+    background: var(--cf-gold-8);
+    border-bottom: 1px solid var(--cf-gold-20);
     cursor: grab;
     font-family: 'Special Elite', serif;
     font-size: 12px;
@@ -490,7 +490,7 @@ body {
 
 .legend-sync-btn {
     background: none;
-    border: 1px solid rgba(201, 168, 76, 0.4);
+    border: 1px solid var(--cf-gold-40);
     border-radius: 4px;
     color: var(--gold);
     font-size: 10px;
@@ -501,7 +501,7 @@ body {
 }
 
 .legend-sync-btn:hover {
-    background: rgba(201, 168, 76, 0.2);
+    background: var(--cf-gold-20);
 }
 
 #legendTextarea {
@@ -551,13 +551,13 @@ body {
 }
 
 .legend-btn.primary {
-    border-color: rgba(184, 50, 50, 0.5);
+    border-color: var(--cf-accent-50);
     color: #e05050;
     background: rgba(184, 50, 50, 0.1);
 }
 
 .legend-btn.primary:hover {
-    background: rgba(184, 50, 50, 0.2);
+    background: var(--cf-accent-20);
 }
 
 /* ======================================================
@@ -572,7 +572,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--cf-w-150);
     border-radius: 3px;
 }
 
@@ -601,7 +601,7 @@ body {
 .tab-btn {
     padding: 0 18px;
     height: 32px;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--cf-w-40);
     border: 1px solid transparent;
     border-bottom: none;
     border-radius: 7px 7px 0 0;
@@ -685,7 +685,7 @@ body {
     gap: 10px;
     padding: 40px 56px;
     background: rgba(60, 35, 10, 0.55);
-    border: 2px dashed rgba(201, 168, 76, 0.4);
+    border: 2px dashed var(--cf-gold-40);
     border-radius: 14px;
     backdrop-filter: blur(6px);
     color: #e8d5a8;
@@ -753,20 +753,20 @@ body {
     justify-content: center;
     border: 2px solid transparent;
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--cf-w-40);
     cursor: pointer;
     transition: all 0.18s ease;
 }
 
 .theme-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--cf-w-120);
     transform: scale(1.1);
 }
 
 .theme-btn.active {
     border-color: var(--gold);
-    background: rgba(201, 168, 76, 0.15);
-    box-shadow: 0 0 8px rgba(201, 168, 76, 0.35);
+    background: var(--cf-gold-15);
+    box-shadow: 0 0 8px var(--cf-gold-35);
 }
 
 /* ── 主题背景 ── */
@@ -797,8 +797,8 @@ body {
 .cb-theme-federal {
     background-color: #e8e4de;
     background-image:
-        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 1px, transparent 0, transparent 24px),
-        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 1px, transparent 0, transparent 24px);
+        repeating-linear-gradient(0deg, var(--cf-b-3) 0, var(--cf-b-3) 1px, transparent 0, transparent 24px),
+        repeating-linear-gradient(90deg, var(--cf-b-3) 0, var(--cf-b-3) 1px, transparent 0, transparent 24px);
 }
 
 /* ======================================================
@@ -808,9 +808,9 @@ body {
 /* 模板标签按钮 */
 .props-template-tab {
     padding: 4px 12px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--cf-w-120);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--cf-w-50);
     color: var(--text-muted);
     font-size: 12px;
     cursor: pointer;
@@ -818,7 +818,7 @@ body {
 }
 
 .props-template-tab:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--cf-w-100);
     color: var(--text-primary);
 }
 
@@ -841,7 +841,7 @@ body {
     max-width: 420px;
     padding: 20px 18px;
     overflow-y: auto;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid var(--cf-w-80);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -855,7 +855,7 @@ body {
     padding: 30px;
     overflow: auto;
     background:
-        repeating-conic-gradient(rgba(255, 255, 255, 0.02) 0% 25%, transparent 0% 50%) 0 0 / 20px 20px;
+        repeating-conic-gradient(var(--cf-w-20) 0% 25%, transparent 0% 50%) 0 0 / 20px 20px;
 }
 
 .props-preview-inner {
@@ -875,9 +875,9 @@ body {
 .props-input {
     width: 100%;
     padding: 8px 10px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--cf-w-120);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--cf-w-50);
     color: var(--text-primary);
     font-size: 13px;
     font-family: 'Special Elite', serif;
@@ -899,7 +899,7 @@ textarea.props-input {
 .props-doc {
     padding: 36px 32px;
     border-radius: 2px;
-    box-shadow: 2px 4px 18px rgba(0, 0, 0, 0.5);
+    box-shadow: 2px 4px 18px var(--cf-b-50);
     position: relative;
     overflow: hidden;
     font-family: 'Special Elite', serif;
@@ -923,7 +923,7 @@ textarea.props-input {
     height: 38px;
     border-radius: 50%;
     background: radial-gradient(circle at 40% 35%, #c0392b 0%, #8b1a1a 80%);
-    box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.4);
+    box-shadow: 1px 2px 4px var(--cf-b-40);
     opacity: 0.9;
 }
 
@@ -1018,7 +1018,7 @@ textarea.props-input {
     color: #1a1a0a;
     font-family: 'Courier New', Consolas, monospace;
     padding: 20px 24px;
-    border: 3px double #8b7740;
+    border: 3px double var(--cf-brass-dim);
 }
 
 .props-tg-header {
@@ -1036,7 +1036,7 @@ textarea.props-input {
 
 .props-tg-strip {
     height: 3px;
-    background: repeating-linear-gradient(90deg, #8b7740 0, #8b7740 8px, transparent 8px, transparent 12px);
+    background: repeating-linear-gradient(90deg, var(--cf-brass-dim) 0, var(--cf-brass-dim) 8px, transparent 8px, transparent 12px);
     margin: 8px 0;
 }
 
@@ -1096,7 +1096,7 @@ textarea.props-input {
     width: 90px;
     height: 110px;
     background: rgba(0, 0, 0, 0.06);
-    border: 1px dashed rgba(0, 0, 0, 0.2);
+    border: 1px dashed var(--cf-b-20);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1138,7 +1138,7 @@ textarea.props-input {
     padding: 6px 14px;
     border: 1px dashed rgba(255, 255, 255, 0.25);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--cf-w-50);
     color: var(--text-muted);
     font-size: 12px;
     cursor: pointer;
@@ -1178,7 +1178,7 @@ textarea.props-input {
 /* ── 自定义画布 ── */
 .props-custom-canvas-wrap {
     border-radius: 4px;
-    box-shadow: 2px 4px 18px rgba(0, 0, 0, 0.5);
+    box-shadow: 2px 4px 18px var(--cf-b-50);
 }
 
 .props-custom-canvas-wrap .canvas-container {
@@ -1192,12 +1192,12 @@ textarea.props-input {
     bottom: 50px;
     width: 170px;
     background: rgba(13, 13, 26, 0.92);
-    border: 1px solid rgba(201, 168, 76, 0.35);
+    border: 1px solid var(--cf-gold-35);
     border-radius: 8px;
     z-index: 200;
     user-select: none;
     backdrop-filter: blur(8px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 20px var(--cf-b-50);
 }
 
 .layer-header {
@@ -1207,15 +1207,15 @@ textarea.props-input {
     padding: 6px 10px;
     font-size: 12px;
     font-weight: 600;
-    color: #e8d8b0;
+    color: var(--cf-cream);
     cursor: grab;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--cf-w-80);
 }
 
 .layer-toggle-btn {
     background: none;
     border: none;
-    color: #e8d8b0;
+    color: var(--cf-cream);
     cursor: pointer;
     font-size: 12px;
     padding: 0 2px;
@@ -1244,7 +1244,7 @@ textarea.props-input {
 }
 
 .layer-row:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--cf-w-60);
 }
 
 .layer-row.layer-hidden {
@@ -1269,7 +1269,7 @@ textarea.props-input {
 
 .layer-vis-btn:hover,
 .layer-lock-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--cf-w-100);
 }
 
 .layer-name {
@@ -1290,19 +1290,19 @@ textarea.props-input {
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    border: 1px solid rgba(201, 168, 76, 0.4);
+    border: 1px solid var(--cf-gold-40);
     background: rgba(13, 13, 26, 0.9);
-    color: #e8d8b0;
+    color: var(--cf-cream);
     font-size: 18px;
     cursor: pointer;
     transition: all 0.25s;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 2px 12px var(--cf-b-40);
 }
 
 .notes-toggle-btn:hover,
 .notes-toggle-btn.active {
-    background: rgba(201, 168, 76, 0.2);
-    border-color: #c9a84c;
+    background: var(--cf-gold-20);
+    border-color: var(--gold);
 }
 
 .notes-sidebar {
@@ -1313,12 +1313,12 @@ textarea.props-input {
     height: 100vh;
     z-index: 800;
     background: rgba(13, 13, 26, 0.96);
-    border-left: 1px solid rgba(201, 168, 76, 0.3);
+    border-left: 1px solid var(--cf-gold-30);
     display: flex;
     flex-direction: column;
     transition: right 0.3s ease;
     backdrop-filter: blur(12px);
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+    box-shadow: -4px 0 24px var(--cf-b-50);
 }
 
 .notes-sidebar.open {
@@ -1330,13 +1330,13 @@ textarea.props-input {
     align-items: center;
     justify-content: space-between;
     padding: 12px 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--cf-w-80);
 }
 
 .notes-sidebar-header h3 {
     margin: 0;
     font-size: 14px;
-    color: #e8d8b0;
+    color: var(--cf-cream);
     font-weight: 600;
 }
 
@@ -1346,8 +1346,8 @@ textarea.props-input {
 }
 
 .notes-action-btn {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--cf-w-60);
+    border: 1px solid var(--cf-w-100);
     color: #ccc;
     border-radius: 4px;
     padding: 3px 8px;
@@ -1357,14 +1357,14 @@ textarea.props-input {
 }
 
 .notes-action-btn:hover {
-    background: rgba(201, 168, 76, 0.15);
-    color: #e8d8b0;
+    background: var(--cf-gold-15);
+    color: var(--cf-cream);
 }
 
 .notes-list-wrap {
     max-height: 180px;
     overflow-y: auto;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--cf-w-60);
 }
 
 .notes-list {
@@ -1384,12 +1384,12 @@ textarea.props-input {
 }
 
 .notes-item:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--cf-w-40);
 }
 
 .notes-item.active {
-    background: rgba(201, 168, 76, 0.1);
-    border-left-color: #c9a84c;
+    background: var(--cf-gold-10);
+    border-left-color: var(--gold);
 }
 
 .notes-item-main {
@@ -1426,7 +1426,7 @@ textarea.props-input {
 
 .notes-item-links {
     font-size: 10px;
-    color: #c9a84c;
+    color: var(--gold);
 }
 
 .notes-item-del {
@@ -1453,10 +1453,10 @@ textarea.props-input {
 }
 
 .notes-title-input {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--cf-w-60);
+    border: 1px solid var(--cf-w-100);
     border-radius: 4px;
-    color: #e8d8b0;
+    color: var(--cf-cream);
     font-size: 14px;
     font-weight: 600;
     padding: 6px 10px;
@@ -1464,7 +1464,7 @@ textarea.props-input {
 }
 
 .notes-title-input:focus {
-    border-color: rgba(201, 168, 76, 0.5);
+    border-color: var(--cf-gold-50);
     outline: none;
 }
 
@@ -1485,12 +1485,12 @@ textarea.props-input {
 }
 
 .notes-link-pill {
-    background: rgba(201, 168, 76, 0.15);
-    border: 1px solid rgba(201, 168, 76, 0.3);
+    background: var(--cf-gold-15);
+    border: 1px solid var(--cf-gold-30);
     border-radius: 10px;
     padding: 1px 8px;
     font-size: 10px;
-    color: #c9a84c;
+    color: var(--gold);
     display: inline-flex;
     align-items: center;
     gap: 3px;
@@ -1499,7 +1499,7 @@ textarea.props-input {
 .notes-link-rm {
     background: none;
     border: none;
-    color: #c9a84c;
+    color: var(--gold);
     cursor: pointer;
     font-size: 11px;
     padding: 0;
@@ -1512,7 +1512,7 @@ textarea.props-input {
 
 .notes-link-add {
     background: none;
-    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border: 1px dashed var(--cf-w-150);
     border-radius: 10px;
     padding: 1px 8px;
     font-size: 10px;
@@ -1522,14 +1522,14 @@ textarea.props-input {
 }
 
 .notes-link-add:hover {
-    border-color: rgba(201, 168, 76, 0.4);
-    color: #c9a84c;
+    border-color: var(--cf-gold-40);
+    color: var(--gold);
 }
 
 .notes-content-area {
     flex: 1;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--cf-w-40);
+    border: 1px solid var(--cf-w-80);
     border-radius: 4px;
     color: #ccc;
     font-size: 13px;
@@ -1540,7 +1540,7 @@ textarea.props-input {
 }
 
 .notes-content-area:focus {
-    border-color: rgba(201, 168, 76, 0.3);
+    border-color: var(--cf-gold-30);
     outline: none;
 }
 
@@ -1551,27 +1551,27 @@ textarea.props-input {
     color: #ccc;
     font-size: 13px;
     line-height: 1.7;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--cf-w-20);
+    border: 1px solid var(--cf-w-60);
     border-radius: 4px;
 }
 
 .notes-preview-area h2,
 .notes-preview-area h3,
 .notes-preview-area h4 {
-    color: #e8d8b0;
+    color: var(--cf-cream);
     margin: 12px 0 6px;
 }
 
 .notes-preview-area code {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--cf-w-80);
     padding: 1px 5px;
     border-radius: 3px;
     font-size: 12px;
 }
 
 .notes-preview-area strong {
-    color: #e8d8b0;
+    color: var(--cf-cream);
 }
 
 .notes-preview-area li {
@@ -1604,8 +1604,8 @@ textarea.props-input {
     position: relative;
     overflow: hidden;
     background:
-        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 60px),
-        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 80px);
+        repeating-linear-gradient(90deg, var(--cf-w-20) 0px, var(--cf-w-20) 1px, transparent 1px, transparent 60px),
+        repeating-linear-gradient(0deg, var(--cf-w-20) 0px, var(--cf-w-20) 1px, transparent 1px, transparent 80px);
     background-color: var(--bg-deep);
     cursor: crosshair;
 }
@@ -1623,7 +1623,7 @@ textarea.props-input {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--cf-b-50);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     z-index: 9999;
@@ -1644,9 +1644,9 @@ textarea.props-input {
     transform: translate(-50%, -50%) scale(0.95);
     width: 380px;
     background: rgba(13, 13, 26, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--cf-w-100);
     border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 30px var(--cf-b-50);
     z-index: 10000;
     opacity: 0;
     visibility: hidden;
@@ -1666,14 +1666,14 @@ textarea.props-input {
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--cf-w-30);
+    border-bottom: 1px solid var(--cf-w-100);
 }
 
 .settings-header h3 {
     margin: 0;
     font-size: 15px;
-    color: #e8d8b0;
+    color: var(--cf-cream);
 }
 
 .settings-content {
@@ -1702,7 +1702,7 @@ textarea.props-input {
 }
 
 .set-btn {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--cf-w-50);
     border: 1px solid rgba(255, 128, 0, 0.2);
     color: #fff;
     padding: 8px 12px;
@@ -1721,7 +1721,7 @@ textarea.props-input {
 .set-btn.primary {
     background: rgba(255, 128, 0, 0.15);
     border-color: rgba(255, 128, 0, 0.5);
-    color: #e8d8b0;
+    color: var(--cf-cream);
     font-weight: bold;
 }
 
@@ -1742,7 +1742,7 @@ textarea.props-input {
 
 .settings-content hr {
     border: none;
-    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    border-top: 1px dashed var(--cf-w-100);
     margin: 4px 0;
 }
 
@@ -1760,24 +1760,24 @@ textarea.props-input {
     border-radius: 50%;
     border: 1px solid rgba(80, 200, 255, 0.4);
     background: rgba(13, 13, 26, 0.9);
-    color: #50c8ff;
+    color: var(--cf-link);
     font-size: 18px;
     cursor: pointer;
     transition: all 0.25s;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 2px 12px var(--cf-b-40);
 }
 
 .ai-toggle-btn:hover,
 .ai-toggle-btn.active {
     background: rgba(80, 200, 255, 0.2);
-    border-color: #50c8ff;
+    border-color: var(--cf-link);
     box-shadow: 0 0 12px rgba(80, 200, 255, 0.4);
 }
 
 .ai-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--cf-b-60);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     z-index: 1000;
@@ -1790,7 +1790,7 @@ textarea.props-input {
     transform: translate(-50%, -50%);
     width: 600px;
     max-width: 90vw;
-    background: rgba(18, 18, 35, 0.95);
+    background: var(--cf-panel-95);
     border: 1px solid rgba(80, 200, 255, 0.3);
     border-radius: var(--radius-lg);
     box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
@@ -1812,7 +1812,7 @@ textarea.props-input {
 .ai-modal-header h3 {
     font-family: 'Special Elite', serif;
     font-size: 16px;
-    color: #50c8ff;
+    color: var(--cf-link);
     margin: 0;
     letter-spacing: 0.05em;
 }
@@ -1839,7 +1839,7 @@ textarea.props-input {
 
 .ai-textarea {
     width: 100%;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--cf-b-20);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 12px;
@@ -1880,7 +1880,7 @@ textarea.props-input {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--cf-b-20);
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
@@ -1939,7 +1939,7 @@ textarea.props-input {
 /* 左侧：笔记列表 */
 .tl-notes-sidebar {
     width: 260px;
-    background: rgba(18, 18, 35, 0.6);
+    background: var(--cf-panel-60);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -1951,7 +1951,7 @@ textarea.props-input {
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--cf-w-50);
 }
 
 .tl-notes-header h3 {
@@ -1977,9 +1977,9 @@ textarea.props-input {
 }
 
 .tl-btn-icon:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--cf-w-80);
     color: var(--text-primary);
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--cf-w-100);
 }
 
 .tl-notes-list-wrap {
@@ -2005,12 +2005,12 @@ textarea.props-input {
 }
 
 .tl-notes-item:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--cf-w-40);
 }
 
 .tl-notes-item.active {
-    background: rgba(201, 168, 76, 0.1);
-    border-color: rgba(201, 168, 76, 0.3);
+    background: var(--cf-gold-10);
+    border-color: var(--cf-gold-30);
 }
 
 .tl-item-title {
@@ -2074,8 +2074,8 @@ textarea.props-input {
     display: flex;
     align-items: center;
     padding: 12px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(18, 18, 35, 0.4);
+    border-bottom: 1px solid var(--cf-w-50);
+    background: var(--cf-panel-40);
 }
 
 .tl-notes-title {
@@ -2262,11 +2262,11 @@ textarea.props-input {
 .cf-ms-btn:hover { background: var(--cf-surface); border-color: var(--state-active-hover-line); }
 .cf-ms-btn:disabled { opacity: 0.35; cursor: default; }
 .cf-ms-btn.primary {
-    background: var(--state-error-bg);
-    border-color: var(--cf-danger-line);
+    background: var(--accent);
+    border-color: var(--accent);
     color: var(--cf-on-danger);
 }
-.cf-ms-btn.primary:hover { background: var(--cf-danger-bg-hv); }
+.cf-ms-btn.primary:hover { background: var(--accent); filter: brightness(1.12); }
 .cf-ms-btn.gold {
     background: var(--state-active);
     border-color: var(--state-active);
@@ -2586,3 +2586,4 @@ body:has(#mapStudioPanel.active) .notes-toggle-btn {
 body:has(#mapStudioPanel.active) .ai-toggle-btn {
     right: calc(var(--cf-inspector-w) + var(--cf-space-4));
 }
+

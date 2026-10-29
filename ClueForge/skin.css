@@ -1,0 +1,105 @@
+/* ============================================================
+   ClueForge · 主题接线层（只做「令牌 → 组件」的转发，不放配色值）
+   ------------------------------------------------------------
+   加载顺序：tokens.css → style.css → skin.css → skins/<id>.css
+   规则：本文件只允许 var(--cf-*)，配色一律在 skins/*.css 里；
+        默认皮肤（data-cf-skin 缺省）= 不加载任何 skins 文件。
+   ============================================================ */
+
+:root {
+    color-scheme: dark;
+}
+
+body {
+    font-family: var(--cf-font-ui);
+}
+
+/* 画布舞台背景改为可主题化的渐变令牌 */
+.canvas-container {
+    background: var(--cf-stage-bg);
+}
+
+/* 纸张层（便签 / 道具预览 / 导出预览）跟随主题纸色 */
+.note-card,
+.tl-note,
+.props-preview-pane {
+    --note-paper: var(--cf-paper);
+    --note-ink: var(--cf-paper-ink);
+}
+
+/* 主题选择器（由 skins/registry.js 注入到工具栏右侧） */
+.cf-skin-select {
+    appearance: none;
+    height: var(--cf-h-ctl);
+    padding: 0 var(--cf-space-4) 0 var(--cf-space-3);
+    border: var(--cf-hairline) solid var(--cf-line);
+    border-radius: var(--cf-r-sm);
+    background: var(--cf-surface-2);
+    color: var(--cf-text-strong);
+    font-family: var(--cf-font-ui);
+    font-size: var(--cf-text-md);
+    cursor: pointer;
+    outline: none;
+}
+
+.cf-skin-select:focus-visible {
+    border-color: var(--state-active-line);
+    box-shadow: 0 0 0 2px var(--state-active-soft);
+}
+
+.cf-skin-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cf-space-2);
+    margin-left: auto;
+    padding-right: var(--cf-space-3);
+}
+
+.cf-skin-label {
+    font-size: var(--cf-text-xs);
+    letter-spacing: 0.08em;
+    color: var(--cf-dim);
+}
+
+/* ============================================================
+   老外壳表面接线：把 style.css 里写死的 rgba/#hex 收口为令牌。
+   默认皮肤令牌 = 原值 → 不换肤时像素级不变；换肤只改 skins/*.css。
+   ============================================================ */
+.app-tabs {
+    background: var(--cf-surface-deep);
+}
+
+.tab-btn {
+    background: var(--cf-chip);
+    border-radius: var(--cf-r-sm) var(--cf-r-sm) 0 0;
+    color: var(--cf-dim);
+}
+
+.tab-btn.active {
+    color: var(--gold);
+}
+
+.statusbar {
+    background: var(--cf-surface-bar);
+    color: var(--cf-dim);
+}
+
+.tool-btn.active {
+    background: var(--cf-accent-soft);
+    border-color: var(--cf-accent-line);
+    color: var(--cf-accent-text);
+    box-shadow: 0 0 10px var(--cf-accent-glow);
+}
+
+/* 主题包若提供纸色，便签本体不再吃老渐变 */
+[data-cf-skin] .note-card.note-paper {
+    background: var(--cf-paper-gradient, var(--cf-paper));
+}
+
+
+
+/* 线索墙四种板面：只用令牌换底色，纹理保持不变 */
+[data-cf-skin] .cb-theme-cork { background-color: var(--cf-cork); }
+[data-cf-skin] .cb-theme-noir { background-color: var(--cf-cork-noir); }
+[data-cf-skin] .cb-theme-chinese { background-color: var(--cf-cork-chinese); }
+[data-cf-skin] .cb-theme-federal { background-color: var(--cf-cork-federal); }

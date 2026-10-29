@@ -1,0 +1,123 @@
+/* 冷光取证 · Cold-Light Forensics — 赛博 / 科幻 / 军事调查（冷蓝黑） */
+[data-cf-skin="coldlight"] {
+    color-scheme: dark;
+
+    /* L1 外壳 */
+    --bg-deep: #090d12;
+    --bg-panel: rgba(17, 24, 35, 0.94);
+    --bg-glass: rgba(120, 190, 220, 0.06);
+    --bg-glass-hv: rgba(120, 190, 220, 0.11);
+    --border: rgba(120, 190, 220, 0.14);
+    --accent: #52c4da;
+    --accent-glow: rgba(82, 196, 218, 0.4);
+    --gold: #52c4da;
+    --text-primary: #e3ecf5;
+    --text-muted: #8fa1b4;
+    --text-dim: #6f8296;
+    --radius-sm: 2px;
+    --radius-md: 3px;
+    --radius-lg: 4px;
+
+    --cf-canvas-bg: #090d12;
+    --cf-surface: rgba(120, 190, 220, 0.06);
+    --cf-surface-2: rgba(120, 190, 220, 0.03);
+    --cf-line: rgba(120, 190, 220, 0.16);
+    --cf-line-soft: rgba(120, 190, 220, 0.09);
+    --cf-text-strong: #e3ecf5;
+    --cf-dim: #8fa1b4;
+    --cf-dim-2: #7e93a8;
+    --cf-dim-3: #4c6280;
+    --state-active: #52c4da;
+    --state-active-bg: rgba(82, 196, 218, 0.12);
+    --state-active-line: rgba(82, 196, 218, 0.6);
+    --state-active-soft: rgba(82, 196, 218, 0.1);
+    --cf-stage-bg: radial-gradient(ellipse at center, #101923 0%, #070a0e 100%);
+
+    /* L2 纸张（冷白档案纸） */
+    --cf-paper: #e8edf2;
+    --cf-paper-ink: #10161e;
+    --cf-paper-ink-dim: #4a5a6b;
+    --cf-paper-mark: #a3302c;
+
+    /* L3 墨（最工整，机器感） */
+    --cf-cv-ink: #c6d3e0;
+    --cf-cv-ink-dim: #7e93a8;
+    --cf-cv-room-fill: #52c4da;
+    --cf-cv-room-fill-a: 0.1;
+    --cf-cv-room-stroke: #52c4da;
+    --cf-cv-room-text: #e3ecf5;
+    --cf-cv-corner: #1b2a3a;
+    --cf-cv-door: #9fc2d6;
+    --cf-cv-corridor-fill: #52c4da;
+    --cf-cv-corridor-fill-a: 0.07;
+    --cf-cv-corridor-stroke: #52c4da;
+    --cf-cv-corridor-stroke-a: 0.32;
+    --cf-cv-grid-major: #52c4da;
+    --cf-cv-grid-major-a: 0.16;
+    --cf-cv-grid-minor: #52c4da;
+    --cf-cv-grid-minor-a: 0.07;
+    --cf-cv-marker-1: #e46060;
+    --cf-cv-marker-2: #e0a34a;
+    --cf-cv-marker-3: #55c08c;
+    --cf-cv-marker-4: #52c4da;
+    --cf-cv-marker-5: #8f9fe0;
+    --cf-cv-marker-6: #93a3b4;
+
+    /* 字体：数字与标签走等宽，中文仍走黑体 */
+    --cf-font-num: Consolas, "Cascadia Mono", "SF Mono", "DejaVu Sans Mono", monospace;
+    /* —— 由 style.css 迁移的字面量系列，按主题重算 —— */
+    --cf-gold-8: color-mix(in srgb, var(--gold) 8%, transparent);
+    --cf-gold-10: color-mix(in srgb, var(--gold) 10%, transparent);
+    --cf-gold-15: color-mix(in srgb, var(--gold) 15%, transparent);
+    --cf-gold-20: color-mix(in srgb, var(--gold) 20%, transparent);
+    --cf-gold-25: color-mix(in srgb, var(--gold) 25%, transparent);
+    --cf-gold-30: color-mix(in srgb, var(--gold) 30%, transparent);
+    --cf-gold-35: color-mix(in srgb, var(--gold) 35%, transparent);
+    --cf-gold-40: color-mix(in srgb, var(--gold) 40%, transparent);
+    --cf-gold-50: color-mix(in srgb, var(--gold) 50%, transparent);
+    --cf-gold-60: color-mix(in srgb, var(--gold) 60%, transparent);
+    --cf-accent-12: color-mix(in srgb, var(--accent) 12%, transparent);
+    --cf-accent-18: color-mix(in srgb, var(--accent) 18%, transparent);
+    --cf-accent-20: color-mix(in srgb, var(--accent) 20%, transparent);
+    --cf-accent-25: color-mix(in srgb, var(--accent) 25%, transparent);
+    --cf-accent-30: color-mix(in srgb, var(--accent) 30%, transparent);
+    --cf-accent-35: color-mix(in srgb, var(--accent) 35%, transparent);
+    --cf-accent-45: color-mix(in srgb, var(--accent) 45%, transparent);
+    --cf-accent-50: color-mix(in srgb, var(--accent) 50%, transparent);
+    --cf-accent-60: color-mix(in srgb, var(--accent) 60%, transparent);
+    --cf-w-12: color-mix(in srgb, var(--text-primary) 1.2%, transparent);
+    --cf-w-20: color-mix(in srgb, var(--text-primary) 2%, transparent);
+    --cf-w-30: color-mix(in srgb, var(--text-primary) 3%, transparent);
+    --cf-w-40: color-mix(in srgb, var(--text-primary) 4%, transparent);
+    --cf-w-50: color-mix(in srgb, var(--text-primary) 5%, transparent);
+    --cf-w-60: color-mix(in srgb, var(--text-primary) 6%, transparent);
+    --cf-w-80: color-mix(in srgb, var(--text-primary) 8%, transparent);
+    --cf-w-100: color-mix(in srgb, var(--text-primary) 10%, transparent);
+    --cf-w-120: color-mix(in srgb, var(--text-primary) 12%, transparent);
+    --cf-w-150: color-mix(in srgb, var(--text-primary) 15%, transparent);
+    --cf-w-180: color-mix(in srgb, var(--text-primary) 18%, transparent);
+    --cf-w-220: color-mix(in srgb, var(--text-primary) 22%, transparent);
+    --cf-chip: color-mix(in srgb, var(--text-primary) 4%, transparent);
+    --cf-surface-deep: color-mix(in srgb, var(--bg-deep) 96%, transparent);
+    --cf-surface-bar: color-mix(in srgb, var(--bg-deep) 90%, transparent);
+    --cf-cork: #2c3a46;
+    --cf-cork-noir: #0b1016;
+    --cf-cork-chinese: #1a2430;
+    --cf-cork-federal: #c9d4de;
+    --cf-cream: color-mix(in srgb, var(--text-primary) 86%, var(--gold));
+    --cf-brass-dim: color-mix(in srgb, var(--gold) 52%, #000);
+
+    /* —— 表面/强调色：按主题重算（theme-surfaces.mjs 维护） —— */
+    --cf-panel-40: color-mix(in srgb, var(--bg-deep) 40%, transparent);
+    --cf-panel-60: color-mix(in srgb, var(--bg-deep) 60%, transparent);
+    --cf-panel-70: color-mix(in srgb, var(--bg-deep) 72%, transparent);
+    --cf-panel-92: color-mix(in srgb, var(--bg-deep) 94%, transparent);
+    --cf-panel-95: color-mix(in srgb, var(--bg-deep) 96%, transparent);
+    --cf-accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
+    --cf-accent-line: color-mix(in srgb, var(--accent) 52%, transparent);
+    --cf-accent-glow: color-mix(in srgb, var(--accent) 24%, transparent);
+    --cf-accent-text: color-mix(in srgb, var(--accent) 64%, #fff);
+}
+
+
+

@@ -10,6 +10,7 @@ import type { GenOptions } from './generator';
 import { ASSET_LIMITS, DOC_LIMITS, UNDO_MAX_BYTES, EXPORT_MAX_PIXELS, contentHash, dataUrlBytes } from './limits';
 import { collectDoc, docToJSON, docToObjects, normalizeDoc } from './serialize';
 import { createEmptyDoc, nextId } from './types';
+import { invalidatePalette, pal } from './theme';
 import type { AssetMeta, CorridorMeta, DoorMeta, MapDoc, MarkerMeta, Pt, RoomMeta, WallMeta } from './types';
 import {
     makeDoor,
@@ -215,6 +216,23 @@ export class MapStudio {
     render(): void {
         this.sizeCanvas();
         this.canvas.requestRenderAll();
+    }
+
+    /**
+     * 换肤后用：令牌缓存失效 → 按文档重建所有画布对象 → 重画网格 → 保持视图。
+     * 必须重建而不是只改 fill：fabric 的对象缓存不会因 fill 变化而失效。
+     */
+    refreshTheme(): void {
+        invalidatePalette();
+        const doc = this.collect();
+        const vt = this.canvas.viewportTransform ? [...this.canvas.viewportTransform] as [number, number, number, number, number, number] : null;
+        const zoom = this.zoom;
+        this.loadDoc(doc, false);
+        this.zoom = zoom;
+        if (vt) this.canvas.setViewportTransform(vt);
+        this.paintGridLayer();
+        this.canvas.requestRenderAll();
+        this.emit();
     }
 
     zoomBy(factor: number): void {
@@ -1323,7 +1341,7 @@ export class MapStudio {
         out.height = height * scale;
         const ctx = out.getContext('2d');
         if (!ctx) return this.renderFlat(scale);
-        ctx.fillStyle = '#12121c';
+        ctx.fillStyle = pal().bg;
         ctx.fillRect(0, 0, out.width, out.height);
         if (withGrid) paintGrid(ctx, out.width, out.height, this.doc.grid, scale);
         const flat = this.renderFlat(scale);
@@ -1381,6 +1399,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
         img.src = src;
     });
 }
+
 
 
 

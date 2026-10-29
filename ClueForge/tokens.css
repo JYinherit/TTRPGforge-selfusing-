@@ -97,3 +97,112 @@
 
 :root { --cf-hairline: 1px; }
 
+
+/* ============================================================
+   画布 / 纸张 / 字体令牌（主题化扩展，默认值 = 原硬编码，视觉零漂移）
+   ============================================================ */
+:root {
+    /* —— 地图画布（fabric 不吃 var()，由 theme.ts 读回后传给对象） —— */
+    --cf-cv-ink: #cfc7b8;
+    --cf-cv-ink-dim: #8b8577;
+    --cf-cv-room-fill: #7a78aa;
+    --cf-cv-room-fill-a: 0.14;
+    --cf-cv-room-stroke: #9a95b8;
+    --cf-cv-room-text: #d8d0c0;
+    --cf-cv-corner: #2a2a3a;
+    --cf-cv-door: #b8b2a2;
+    --cf-cv-corridor-fill: #c9a84c;
+    --cf-cv-corridor-fill-a: 0.06;
+    --cf-cv-corridor-stroke: #c9a84c;
+    --cf-cv-corridor-stroke-a: 0.4;
+    --cf-cv-grid-major: #c9a84c;
+    --cf-cv-grid-major-a: 0.24;
+    --cf-cv-grid-minor: #c9a84c;
+    --cf-cv-grid-minor-a: 0.1;
+    --cf-cv-marker-1: #d0564f;
+    --cf-cv-marker-2: #d99a3e;
+    --cf-cv-marker-3: #7fa356;
+    --cf-cv-marker-4: #5b91b0;
+    --cf-cv-marker-5: #8f7ac8;
+    --cf-cv-marker-6: #a8a094;
+    --cf-stage-bg: radial-gradient(ellipse at center, #1c1c30 0%, #0d0d1a 100%);
+
+    /* —— 纸张层（便签 / 道具 / 导出） —— */
+    --cf-paper: #efe6d2;
+    --cf-paper-ink: #2a241c;
+    --cf-paper-ink-dim: #6b5f4a;
+    --cf-paper-mark: #a6301f;
+
+    /* —— 字体（离线系统栈；主题包只允许换这三条） —— */
+    --cf-font-ui: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+    --cf-font-display: Georgia, "Palatino Linotype", "Songti SC", SimSun, "Noto Serif SC", serif;
+    --cf-font-num: Consolas, "Cascadia Mono", "SF Mono", Menlo, "DejaVu Sans Mono", monospace;
+
+    /* —— 老外壳表面（默认值 = 老 style.css 硬编码原值，保证零视觉漂移） —— */
+    --cf-surface-deep: rgba(8, 8, 18, 0.98);
+    --cf-surface-bar: rgba(10, 10, 20, 0.9);
+    --cf-chip: rgba(255, 255, 255, 0.04);
+    --cf-accent-soft: rgba(184, 50, 50, 0.18);
+    --cf-accent-line: rgba(184, 50, 50, 0.45);
+    --cf-accent-glow: rgba(184, 50, 50, 0.2);
+    --cf-accent-text: #e05050;
+
+    /* —— 老样式字面量（迁移自 style.css） —— */
+    --cf-gold-8: rgba(201, 168, 76, 0.08);
+    --cf-gold-10: rgba(201, 168, 76, 0.1);
+    --cf-gold-15: rgba(201, 168, 76, 0.15);
+    --cf-gold-20: rgba(201, 168, 76, 0.2);
+    --cf-gold-25: rgba(201, 168, 76, 0.25);
+    --cf-gold-30: rgba(201, 168, 76, 0.3);
+    --cf-gold-35: rgba(201, 168, 76, 0.35);
+    --cf-gold-40: rgba(201, 168, 76, 0.4);
+    --cf-gold-50: rgba(201, 168, 76, 0.5);
+    --cf-gold-60: rgba(201, 168, 76, 0.6);
+    --cf-accent-12: rgba(184, 50, 50, 0.12);
+    --cf-accent-18: rgba(184, 50, 50, 0.18);
+    --cf-accent-20: rgba(184, 50, 50, 0.2);
+    --cf-accent-25: rgba(184, 50, 50, 0.25);
+    --cf-accent-30: rgba(184, 50, 50, 0.3);
+    --cf-accent-35: rgba(184, 50, 50, 0.35);
+    --cf-accent-45: rgba(184, 50, 50, 0.45);
+    --cf-accent-50: rgba(184, 50, 50, 0.5);
+    --cf-accent-60: rgba(184, 50, 50, 0.6);
+    --cf-w-12: rgba(255, 255, 255, 0.012);
+    --cf-w-20: rgba(255, 255, 255, 0.02);
+    --cf-w-30: rgba(255, 255, 255, 0.03);
+    --cf-w-40: rgba(255, 255, 255, 0.04);
+    --cf-w-50: rgba(255, 255, 255, 0.05);
+    --cf-w-60: rgba(255, 255, 255, 0.06);
+    --cf-w-80: rgba(255, 255, 255, 0.08);
+    --cf-w-100: rgba(255, 255, 255, 0.1);
+    --cf-w-120: rgba(255, 255, 255, 0.12);
+    --cf-w-150: rgba(255, 255, 255, 0.15);
+    --cf-w-180: rgba(255, 255, 255, 0.18);
+    --cf-w-220: rgba(255, 255, 255, 0.22);
+    --cf-b-3: rgba(0, 0, 0, 0.03);
+    --cf-b-20: rgba(0, 0, 0, 0.2);
+    --cf-b-30: rgba(0, 0, 0, 0.3);
+    --cf-b-35: rgba(0, 0, 0, 0.35);
+    --cf-b-40: rgba(0, 0, 0, 0.4);
+    --cf-b-50: rgba(0, 0, 0, 0.5);
+    --cf-b-60: rgba(0, 0, 0, 0.6);
+    --cf-cream: #e8d8b0;
+    --cf-brass-dim: #8b7740;
+    --cf-link: #50c8ff;
+    --cf-text-strong: #e8e0d0;
+
+    --cf-panel-40: rgba(18, 18, 35, 0.4);
+    --cf-panel-60: rgba(18, 18, 35, 0.6);
+    --cf-panel-70: rgba(18, 18, 35, 0.7);
+    --cf-panel-92: rgba(18, 18, 35, 0.92);
+    --cf-panel-95: rgba(18, 18, 35, 0.95);
+
+    /* —— 线索墙板面 —— */
+    --cf-cork: #b5874e;
+    --cf-cork-noir: #1a1610;
+    --cf-cork-chinese: #2c1e12;
+    --cf-cork-federal: #e8e4de;
+
+    /* —— 兼容别名 —— */
+    --cf-text: var(--cf-text-strong);
+}
