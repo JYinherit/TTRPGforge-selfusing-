@@ -26,6 +26,10 @@ console.log('▸ 令牌门禁 …');
 const lint = spawnSync(process.execPath, [path.join(root, 'scripts', 'lint-tokens.mjs')], { cwd: root, stdio: 'inherit' });
 if (lint.status !== 0) fail('设计令牌泄漏，构建中止');
 
+console.log('▸ 打包只读查看器（分享 HTML 用）…');
+const viewerBuild = spawnSync(process.execPath, [path.join(root, 'scripts', 'build-viewer.mjs')], { cwd: root, stdio: 'inherit' });
+if (viewerBuild.status !== 0) fail('查看器打包失败');
+
 console.log('▸ 清理 dist …');
 rmSync(dist, { recursive: true, force: true });
 
@@ -82,5 +86,6 @@ function dirSize(dir) {
 const mb = (dirSize(dist) / 1048576).toFixed(2);
 console.log(`\n✔ 构建完成 · dist/ · ${mb} MB`);
 console.log('  双击 dist/index.html 即可离线运行；或 npm run serve 起本地预览。');
+
 
 

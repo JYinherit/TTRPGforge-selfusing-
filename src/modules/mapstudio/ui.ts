@@ -7,6 +7,7 @@ import { lengthToMeters } from './grid';
 import { ASSET_LIMITS, EXPORT_MAX_PIXELS } from './limits';
 import { MARKER_COLORS } from './objects';
 import { validateMapDoc } from './serialize';
+import { buildShareHtml, estimateShareBytes } from './share/build';
 import { MapStudio } from './studio';
 import type { StudioStatus, Tool, DoorKind, MarkerShape, MultiSelection } from './studio';
 import { createEmptyDoc } from './types';
@@ -42,6 +43,7 @@ const TEMPLATE = `
         <option value="2-0">2x</option>
         <option value="2-1">2x+格线</option>
       </select>
+      <button class="cf-ms-btn" id="cfMsShare" title="导出一个自包含 HTML：玩家双击就能看，只读、无网络、已剥离备注">分享 HTML</button>
       <button class="cf-ms-btn gold" id="cfMsJson" title="导出地图 JSON（可被工程文件引用）">导出 JSON</button>
     </div>
   </header>
@@ -427,6 +429,31 @@ export function mountMapStudio(): MapStudioPanelApi {
         }
     });
 
+    el<HTMLButtonElement>('cfMsShare').addEventListener('click', () => {
+        try {
+            const doc = studio.collect();
+            let light = false;
+            const bytes = estimateShareBytes(doc, { light });
+            if (bytes > 4 * 1024 * 1024) {
+                light = window.confirm(
+                    `这份地图含贴图约 ${(bytes / 1048576).toFixed(1)} MB，发给玩家会很重。\n` +
+                    '改用轻量模式？（剥掉贴图与底图，标记退化成色块 + 字形，体积可降一个数量级）'
+                );
+            }
+            const html = buildShareHtml(doc, { light });
+            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            downloadDataUrl(url, `${docSlug()}-${stamp()}${light ? '-lite' : ''}.html`);
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+            hintEl.textContent = light
+                ? '已导出轻量分享页：玩家版（无备注、无贴图），双击即看'
+                : '已导出分享页：玩家版（已剥离备注），双击即看，无网络请求';
+            hintEl.classList.remove('warn');
+        } catch (err) {
+            window.alert('分享页导出失败：' + (err instanceof Error ? err.message : String(err)));
+        }
+    });
+
     el<HTMLButtonElement>('cfMsJson').addEventListener('click', () => {
         const blob = new Blob([studio.toJSON()], { type: 'application/json;charset=utf-8' });
         const url = URL.createObjectURL(blob);
@@ -744,6 +771,8 @@ function downloadDataUrl(href: string, filename: string): void {
     a.click();
     a.remove();
 }
+
+
 
 
 
